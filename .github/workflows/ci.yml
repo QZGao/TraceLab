@@ -36,6 +36,7 @@ jobs:
 
       - name: Smoke run
         run: |
+          mkdir -p out
           ./build/tracelab run --native --json out/result.json -- /bin/echo hello
           ./build/tracelab report out/result.json
 

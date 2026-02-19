@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <regex>
@@ -184,6 +185,18 @@ bool CommandExists(const std::string &tool) {
 }
 
 bool WriteTextFile(const std::string &path, const std::string &content, std::string *error) {
+    const std::filesystem::path output_path(path);
+    if (output_path.has_parent_path()) {
+        std::error_code ec;
+        std::filesystem::create_directories(output_path.parent_path(), ec);
+        if (ec) {
+            if (error != nullptr) {
+                *error = "unable to create parent directory";
+            }
+            return false;
+        }
+    }
+
     std::ofstream out(path, std::ios::out | std::ios::trunc);
     if (!out) {
         if (error != nullptr) {
