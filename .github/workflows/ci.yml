@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install jsonschema
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DTRACELAB_BUILD_TESTS=ON
+          -DTRACELAB_RUN_SCHEMA_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke run
+        run: |
+          ./build/tracelab run --native --json out/result.json -- /bin/echo hello
+          ./build/tracelab report out/result.json
+
+      - name: Validate smoke JSON against schema
+        run: >
+          python scripts/validate_schema.py
+          --schema schema/result.schema.json
+          --instance out/result.json
+
+      - name: Doctor output
+        run: ./build/tracelab doctor || true

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tracelab:schema:result:0.1.0",
+  "title": "TraceLab Run Result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "kind",
+    "timestamp_utc",
+    "mode",
+    "command",
+    "duration_sec",
+    "exit_code",
+    "host",
+    "collectors"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "const": "run_result"
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "native",
+        "qemu"
+      ]
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exec_command": {
+      "type": "string"
+    },
+    "duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "qemu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arch"
+      ],
+      "properties": {
+        "arch": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "arch",
+        "git_sha"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "git_sha": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "collectors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "perf_stat",
+        "strace_summary",
+        "proc_status"
+      ],
+      "properties": {
+        "perf_stat": {
+          "$ref": "#/$defs/collectorStatus"
+        },
+        "strace_summary": {
+          "$ref": "#/$defs/collectorStatus"
+        },
+        "proc_status": {
+          "$ref": "#/$defs/collectorStatus"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "collectorStatus": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "error",
+            "unavailable",
+            "pending_implementation"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "run_result",
+  "timestamp_utc": "2026-01-01T00:00:00Z",
+  "mode": "native",
+  "command": "/bin/echo hello",
+  "duration_sec": 0.001,
+  "exit_code": 0,
+  "host": {
+    "os": "linux",
+    "arch": "x86_64",
+    "git_sha": "deadbee"
+  },
+  "collectors": {
+    "perf_stat": {
+      "status": "unavailable"
+    },
+    "strace_summary": {
+      "status": "unavailable"
+    },
+    "proc_status": {
+      "status": "unavailable"
+    }
+  }
+}
