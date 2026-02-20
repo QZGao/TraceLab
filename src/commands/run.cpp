@@ -274,6 +274,17 @@ namespace tracelab {
         const PerfStatResult perf = CollectPerfStat(exec_args, collector_timeout_sec);
         const StraceSummaryResult strace = CollectStraceSummary(exec_args, collector_timeout_sec);
         const DiagnosisResult diagnosis = DiagnoseRun(workload, perf, strace, mode);
+        const std::string host_os = HostOs();
+        const std::string host_arch = HostArch();
+        const std::string kernel_version = KernelVersion();
+        const std::string cpu_model = CpuModel();
+        const std::string cpu_governor_hint = CpuGovernorHint();
+        const std::string git_sha = DetectGitSha();
+        const std::string perf_version = ToolVersion("perf");
+        const std::string strace_version = ToolVersion("strace");
+        const std::string qemu_x86_64_version = ToolVersion("qemu-x86_64");
+        const std::string qemu_aarch64_version = ToolVersion("qemu-aarch64");
+        const std::string qemu_riscv64_version = ToolVersion("qemu-riscv64");
 
         // Strict mode treats any non-ok collector status as a hard failure.
         if (strict &&
@@ -328,9 +339,19 @@ namespace tracelab {
         }
 
         json << "  \"host\": {\n"
-                << "    \"os\": \"" << HostOs() << "\",\n"
-                << "    \"arch\": \"" << HostArch() << "\",\n"
-                << "    \"git_sha\": \"" << JsonEscape(DetectGitSha()) << "\"\n"
+                << "    \"os\": \"" << JsonEscape(host_os) << "\",\n"
+                << "    \"arch\": \"" << JsonEscape(host_arch) << "\",\n"
+                << "    \"kernel_version\": \"" << JsonEscape(kernel_version) << "\",\n"
+                << "    \"cpu_model\": \"" << JsonEscape(cpu_model) << "\",\n"
+                << "    \"cpu_governor_hint\": \"" << JsonEscape(cpu_governor_hint) << "\",\n"
+                << "    \"git_sha\": \"" << JsonEscape(git_sha) << "\",\n"
+                << "    \"tool_versions\": {\n"
+                << "      \"perf\": \"" << JsonEscape(perf_version) << "\",\n"
+                << "      \"strace\": \"" << JsonEscape(strace_version) << "\",\n"
+                << "      \"qemu-x86_64\": \"" << JsonEscape(qemu_x86_64_version) << "\",\n"
+                << "      \"qemu-aarch64\": \"" << JsonEscape(qemu_aarch64_version) << "\",\n"
+                << "      \"qemu-riscv64\": \"" << JsonEscape(qemu_riscv64_version) << "\"\n"
+                << "    }\n"
                 << "  },\n"
                 << "  \"collectors\": {\n"
                 << "    \"perf_stat\": " << PerfCollectorToJson(perf) << ",\n"

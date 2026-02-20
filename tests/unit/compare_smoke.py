@@ -32,7 +32,21 @@ def write_run_result(path: str, mode: str, command: str, duration_sec: float, ar
             ],
             "limitations": [],
         },
-        "host": {"os": "linux", "arch": "x86_64", "git_sha": "deadbee"},
+        "host": {
+            "os": "linux",
+            "arch": "x86_64",
+            "kernel_version": "6.8.0-test",
+            "cpu_model": "Synthetic CPU",
+            "cpu_governor_hint": "performance",
+            "git_sha": "deadbee",
+            "tool_versions": {
+                "perf": "perf version 6.8.0",
+                "strace": "strace -- version 6.7",
+                "qemu-x86_64": "qemu-x86_64 version 8.2.2",
+                "qemu-aarch64": "qemu-aarch64 version 8.2.2",
+                "qemu-riscv64": "qemu-riscv64 version 8.2.2",
+            },
+        },
         "collectors": {
             "perf_stat": {
                 "status": "ok",

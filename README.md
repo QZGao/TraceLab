@@ -12,7 +12,7 @@ It has two main modes:
 ## Features
 
 - `tracelab doctor`: checks required and optional toolchain dependencies.
-- `tracelab run`: runs workloads in native or QEMU mode and emits structured JSON.
+- `tracelab run`: runs workloads in native or QEMU mode and emits structured JSON with reproducibility metadata (kernel, CPU model/governor hint, tool versions, git SHA).
 - `tracelab report`: renders diagnosis, evidence, confidence, and limitations from `result.json`.
 - `tracelab inspect`: ISA/ABI/linkage/symbol hints plus QEMU architecture selector hints.
 - `tracelab compare`: compares native vs QEMU run artifacts (delta duration, throughput change, caveated counters).

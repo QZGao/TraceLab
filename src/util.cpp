@@ -286,6 +286,87 @@ namespace tracelab {
 #endif
     }
 
+    // Returns kernel release identifier for reproducibility metadata.
+    std::string KernelVersion() {
+#if defined(__linux__) || defined(__APPLE__)
+        const CommandResult result = RunCommandCapture("uname -r 2>/dev/null");
+        const std::string kernel = Trim(result.output);
+        if (result.exit_code == 0 && !kernel.empty()) {
+            return kernel;
+        }
+#endif
+        return "unknown";
+    }
+
+    // Returns CPU model/brand string when host metadata is readable.
+    std::string CpuModel() {
+#if defined(__linux__)
+        const auto cpuinfo = ReadTextFile("/proc/cpuinfo");
+        if (cpuinfo.has_value()) {
+            std::istringstream in(cpuinfo.value());
+            std::string line;
+            while (std::getline(in, line)) {
+                const size_t separator = line.find(':');
+                if (separator == std::string::npos) {
+                    continue;
+                }
+
+                const std::string key = ToLower(Trim(line.substr(0, separator)));
+                if (key == "model name" || key == "hardware") {
+                    const std::string value = Trim(line.substr(separator + 1));
+                    if (!value.empty()) {
+                        return value;
+                    }
+                }
+            }
+        }
+#elif defined(__APPLE__)
+        const CommandResult result = RunCommandCapture("sysctl -n machdep.cpu.brand_string 2>/dev/null");
+        const std::string model = Trim(result.output);
+        if (result.exit_code == 0 && !model.empty()) {
+            return model;
+        }
+#endif
+        return "unknown";
+    }
+
+    // Returns a best-effort CPU frequency governor hint for Linux hosts.
+    std::string CpuGovernorHint() {
+#if defined(__linux__)
+        const auto governor = ReadTextFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
+        if (governor.has_value()) {
+            const std::string value = Trim(governor.value());
+            if (!value.empty()) {
+                return value;
+            }
+            return "unknown";
+        }
+        return "unavailable";
+#else
+        return "unavailable";
+#endif
+    }
+
+    // Resolves a tool's version string from the first non-empty `--version` output line.
+    std::string ToolVersion(const std::string &tool) {
+        if (!CommandExists(tool)) {
+            return "missing";
+        }
+
+        const std::string command = ShellQuote(tool) + " --version 2>&1";
+        const CommandResult result = RunCommandCapture(command);
+        std::istringstream in(result.output);
+        std::string line;
+        while (std::getline(in, line)) {
+            const std::string trimmed = Trim(line);
+            if (!trimmed.empty()) {
+                return trimmed;
+            }
+        }
+
+        return result.exit_code == 0 ? "unknown" : "error";
+    }
+
     // Returns short git SHA when repository/git is available.
     std::string DetectGitSha() {
 #ifdef _WIN32

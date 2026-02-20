@@ -65,6 +65,18 @@ namespace tracelab {
     // Returns host architecture identifier (for example: x86_64, aarch64).
     std::string HostArch();
 
+    // Returns kernel version string for reproducibility metadata.
+    std::string KernelVersion();
+
+    // Returns CPU model/brand string when available.
+    std::string CpuModel();
+
+    // Returns CPU governor hint (for example: performance/powersave) when available.
+    std::string CpuGovernorHint();
+
+    // Returns a tool version string (first --version line) or a sentinel such as missing/unknown.
+    std::string ToolVersion(const std::string &tool);
+
     // Returns short git SHA for current repo, or "unknown" when unavailable.
     std::string DetectGitSha();
 

@@ -115,6 +115,10 @@
       "required": [
         "os",
         "arch",
+        "kernel_version",
+        "cpu_model",
+        "cpu_governor_hint",
+        "tool_versions",
         "git_sha"
       ],
       "properties": {
@@ -126,9 +130,54 @@
           "type": "string",
           "minLength": 1
         },
+        "kernel_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_governor_hint": {
+          "type": "string",
+          "minLength": 1
+        },
         "git_sha": {
           "type": "string",
           "minLength": 1
+        },
+        "tool_versions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "perf",
+            "strace",
+            "qemu-x86_64",
+            "qemu-aarch64",
+            "qemu-riscv64"
+          ],
+          "properties": {
+            "perf": {
+              "type": "string",
+              "minLength": 1
+            },
+            "strace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qemu-x86_64": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qemu-aarch64": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qemu-riscv64": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     },
