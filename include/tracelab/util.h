@@ -5,65 +5,84 @@
 #include <vector>
 
 namespace tracelab {
+    struct CommandResult {
+        int exit_code = -1;
+        std::string output;
+    };
 
-struct CommandResult {
-    int exit_code = -1;
-    std::string output;
-};
+    // Common collector status used in run artifacts.
+    // `status` is expected to be one of: ok, error, unavailable, pending_implementation.
+    struct CollectorStatus {
+        std::string status;
+        std::string reason;
+    };
 
-// Common collector status used in run artifacts.
-// `status` is expected to be one of: ok, error, unavailable, pending_implementation.
-struct CollectorStatus {
-    std::string status;
-    std::string reason;
-};
+    // Removes leading and trailing ASCII whitespace.
+    std::string Trim(const std::string &value);
 
-// String helpers.
-std::string Trim(const std::string &value);
-bool StartsWith(const std::string &value, const std::string &prefix);
-std::string ToLower(std::string value);
+    // Returns true when `value` begins with `prefix`.
+    bool StartsWith(const std::string &value, const std::string &prefix);
 
-// Escapes arbitrary text for safe JSON string emission.
-std::string JsonEscape(const std::string &value);
+    // Lowercases ASCII letters.
+    std::string ToLower(std::string value);
 
-// Produces a shell-safe quoted argument for the current platform shell.
-std::string ShellQuote(const std::string &value);
+    // Escapes arbitrary text for safe JSON string emission.
+    std::string JsonEscape(const std::string &value);
 
-// Joins argv-like parts as plain text (for display only).
-std::string JoinRaw(const std::vector<std::string> &parts);
+    // Produces a shell-safe quoted argument for the current platform shell.
+    std::string ShellQuote(const std::string &value);
 
-// Joins argv-like parts with shell quoting (for execution strings).
-std::string JoinQuoted(const std::vector<std::string> &parts);
+    // Joins argv-like parts as plain text (for display only).
+    std::string JoinRaw(const std::vector<std::string> &parts);
 
-// Runs a shell command and returns only decoded exit code.
-int RunCommandStatus(const std::string &command);
+    // Joins argv-like parts with shell quoting (for execution strings).
+    std::string JoinQuoted(const std::vector<std::string> &parts);
 
-// Runs a shell command and captures stdout/stderr text plus decoded exit code.
-CommandResult RunCommandCapture(const std::string &command);
+    // Runs a shell command and returns only decoded exit code.
+    int RunCommandStatus(const std::string &command);
 
-// Returns true when an executable is available in PATH.
-bool CommandExists(const std::string &tool);
+    // Runs a shell command and captures stdout/stderr text plus decoded exit code.
+    CommandResult RunCommandCapture(const std::string &command);
 
-// File helpers.
-bool WriteTextFile(const std::string &path, const std::string &content, std::string *error);
-std::optional<std::string> ReadTextFile(const std::string &path);
-bool FileExists(const std::string &path);
+    // Returns true when an executable is available in PATH.
+    bool CommandExists(const std::string &tool);
 
-// Platform and metadata helpers.
-std::string NowUtcIso8601();
-std::string HostOs();
-std::string HostArch();
-std::string DetectGitSha();
+    // Writes text to a file, creating parent directories as needed.
+    bool WriteTextFile(const std::string &path, const std::string &content, std::string *error);
 
-// Lightweight JSON extraction helpers used by `report`.
-// These are intentionally simple and operate on known TraceLab JSON layout.
-std::optional<std::string> ExtractJsonString(const std::string &text, const std::string &key);
-std::optional<double> ExtractJsonNumber(const std::string &text, const std::string &key);
-std::optional<int> ExtractJsonInteger(const std::string &text, const std::string &key);
-std::optional<std::string> ExtractCollectorStatus(const std::string &text, const std::string &collector);
-std::optional<std::string> ExtractLabeledField(const std::string &text, const std::string &label);
+    // Reads the entire text file into memory.
+    std::optional<std::string> ReadTextFile(const std::string &path);
 
-// Shell null-device redirect fragment for the current platform.
-const char *NullRedirect();
+    // Returns true if the path exists and is readable as a file.
+    bool FileExists(const std::string &path);
 
+    // Returns current UTC timestamp in ISO-8601 format.
+    std::string NowUtcIso8601();
+
+    // Returns host OS identifier (for example: linux, windows, darwin).
+    std::string HostOs();
+
+    // Returns host architecture identifier (for example: x86_64, aarch64).
+    std::string HostArch();
+
+    // Returns short git SHA for current repo, or "unknown" when unavailable.
+    std::string DetectGitSha();
+
+    // Extracts a string field by key from TraceLab JSON text.
+    std::optional<std::string> ExtractJsonString(const std::string &text, const std::string &key);
+
+    // Extracts a numeric field by key from TraceLab JSON text.
+    std::optional<double> ExtractJsonNumber(const std::string &text, const std::string &key);
+
+    // Extracts an integer field by key from TraceLab JSON text.
+    std::optional<int> ExtractJsonInteger(const std::string &text, const std::string &key);
+
+    // Extracts `collectors.<collector>.status` from TraceLab JSON text.
+    std::optional<std::string> ExtractCollectorStatus(const std::string &text, const std::string &collector);
+
+    // Extracts a "Label: value" field from plain-text command output.
+    std::optional<std::string> ExtractLabeledField(const std::string &text, const std::string &label);
+
+    // Shell null-device redirect fragment for the current platform.
+    const char *NullRedirect();
 } // namespace tracelab

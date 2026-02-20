@@ -50,11 +50,11 @@ def main() -> int:
             return 1
         diagnosis = data.get("diagnosis", {})
         if diagnosis.get("label") not in (
-            "cpu-bound",
-            "syscall-heavy",
-            "io-bound",
-            "memory-pressure",
-            "inconclusive",
+                "cpu-bound",
+                "syscall-heavy",
+                "io-bound",
+                "memory-pressure",
+                "inconclusive",
         ):
             print("missing or invalid diagnosis.label", file=sys.stderr)
             return 1

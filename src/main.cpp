@@ -6,20 +6,18 @@
 #include <vector>
 
 namespace tracelab {
-
-// Prints top-level CLI help and supported subcommands.
-void PrintUsage() {
-    std::cout
-        << "TraceLab v" << kSchemaVersion << "\n"
-        << "Usage:\n"
-        << "  tracelab doctor [--json <path>]\n"
-        << "  tracelab run [--native | --qemu <arch>] [--strict] [--json <path>] -- <command...>\n"
-        << "  tracelab report <result.json>\n"
-        << "  tracelab inspect [--json <path>] <binary>\n"
-        << "  tracelab compare [--native <result.json> ... --qemu <result.json> ...] "
-           "[--json <path>] [<native_result.json> <qemu_result.json>]\n";
-}
-
+    // Prints top-level CLI help and supported subcommands.
+    void PrintUsage() {
+        std::cout
+                << "TraceLab v" << kSchemaVersion << "\n"
+                << "Usage:\n"
+                << "  tracelab doctor [--json <path>]\n"
+                << "  tracelab run [--native | --qemu <arch>] [--strict] [--json <path>] -- <command...>\n"
+                << "  tracelab report <result.json>\n"
+                << "  tracelab inspect [--json <path>] <binary>\n"
+                << "  tracelab compare [--native <result.json> ... --qemu <result.json> ...] "
+                "[--json <path>] [<native_result.json> <qemu_result.json>]\n";
+    }
 } // namespace tracelab
 
 // Dispatches argv to the selected TraceLab subcommand handler.
