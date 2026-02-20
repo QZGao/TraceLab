@@ -4,6 +4,7 @@
 
 namespace tracelab {
 
+// Collects syscall aggregate timings using `strace -c`.
 StraceSummaryResult CollectStraceSummary(const std::vector<std::string> &command, int timeout_sec) {
     StraceSummaryResult result;
 
@@ -22,6 +23,7 @@ StraceSummaryResult CollectStraceSummary(const std::vector<std::string> &command
         return result;
     }
 
+    // Redirect workload stdout away so parser sees only strace summary text.
     std::string wrapped = "strace -qq -c -- " + JoinQuoted(command) + " 2>&1 1>/dev/null";
     const bool can_timeout = timeout_sec > 0 && CommandExists("timeout");
     if (can_timeout) {

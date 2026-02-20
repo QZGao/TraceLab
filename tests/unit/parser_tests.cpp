@@ -9,6 +9,7 @@
 
 namespace {
 
+// Reads fixture text from disk for parser test inputs.
 std::string ReadFile(const std::string &path) {
     std::ifstream in(path, std::ios::in);
     std::ostringstream out;
@@ -16,10 +17,12 @@ std::string ReadFile(const std::string &path) {
     return out.str();
 }
 
+// Floating-point comparator for parsed numeric fields.
 bool NearlyEqual(double a, double b, double eps = 1e-9) {
     return std::abs(a - b) <= eps;
 }
 
+// Validates baseline perf CSV parsing for all primary counters.
 int TestPerfSample() {
     const std::string text = ReadFile("tests/parser_fixtures/perf_stat_sample.csv");
     tracelab::PerfStatData data;
@@ -43,6 +46,7 @@ int TestPerfSample() {
     return 0;
 }
 
+// Ensures unsupported perf events are ignored without failing parse.
 int TestPerfUnsupported() {
     const std::string text = ReadFile("tests/parser_fixtures/perf_stat_with_unsupported.csv");
     tracelab::PerfStatData data;
@@ -62,6 +66,7 @@ int TestPerfUnsupported() {
     return 0;
 }
 
+// Verifies perf parser handles semicolon-delimited localized output.
 int TestPerfLocalizedSemicolon() {
     const std::string text = ReadFile("tests/parser_fixtures/perf_stat_localized_semicolon.csv");
     tracelab::PerfStatData data;
@@ -81,6 +86,7 @@ int TestPerfLocalizedSemicolon() {
     return 0;
 }
 
+// Verifies parser still succeeds when only a subset of counters is present.
 int TestPerfMissingFields() {
     const std::string text = ReadFile("tests/parser_fixtures/perf_stat_missing_fields.csv");
     tracelab::PerfStatData data;
@@ -96,6 +102,7 @@ int TestPerfMissingFields() {
     return 0;
 }
 
+// Validates canonical strace summary parsing with explicit totals.
 int TestStraceSample() {
     const std::string text = ReadFile("tests/parser_fixtures/strace_summary_sample.txt");
     tracelab::StraceSummaryData data;
@@ -125,6 +132,7 @@ int TestStraceSample() {
     return 0;
 }
 
+// Verifies localized/non-zero strace rows parse correctly.
 int TestStraceLocalizedNonZero() {
     const std::string text = ReadFile("tests/parser_fixtures/strace_summary_localized_nonzero.txt");
     tracelab::StraceSummaryData data;
@@ -152,6 +160,7 @@ int TestStraceLocalizedNonZero() {
     return 0;
 }
 
+// Ensures sparse strace summaries still produce stable parsed rows.
 int TestStraceSparse() {
     const std::string text = ReadFile("tests/parser_fixtures/strace_summary_sparse.txt");
     tracelab::StraceSummaryData data;
@@ -181,6 +190,7 @@ int TestStraceSparse() {
 
 } // namespace
 
+// Runs all parser fixture tests and reports aggregate pass/fail.
 int main() {
     int failed = 0;
     failed += TestPerfSample();

@@ -4,6 +4,7 @@
 
 namespace tracelab {
 
+// Collects selected hardware/software counters via `perf stat -x,`.
 PerfStatResult CollectPerfStat(const std::vector<std::string> &command, int timeout_sec) {
     PerfStatResult result;
 
@@ -22,6 +23,7 @@ PerfStatResult CollectPerfStat(const std::vector<std::string> &command, int time
         return result;
     }
 
+    // Redirect workload stdout away so parser only sees perf CSV lines.
     std::string wrapped =
         "perf stat -x, -e cycles,instructions,branches,branch-misses,cache-misses,page-faults -- " +
         JoinQuoted(command) + " 2>&1 1>/dev/null";

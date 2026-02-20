@@ -7,6 +7,7 @@
 
 namespace tracelab {
 
+// Prints top-level CLI help and supported subcommands.
 void PrintUsage() {
     std::cout
         << "TraceLab v" << kSchemaVersion << "\n"
@@ -19,6 +20,7 @@ void PrintUsage() {
 
 } // namespace tracelab
 
+// Dispatches argv to the selected TraceLab subcommand handler.
 int main(int argc, char **argv) {
     using namespace tracelab;
 

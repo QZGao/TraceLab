@@ -7,6 +7,7 @@
 
 namespace tracelab {
 
+// Implements `tracelab inspect`: lightweight ELF/ISA metadata extraction.
 int HandleInspect(const std::vector<std::string> &args) {
     std::string json_path;
     std::string binary_path;
@@ -56,6 +57,7 @@ int HandleInspect(const std::vector<std::string> &args) {
     std::string plt_got = "unknown";
     std::string elf_type = "unknown";
 
+    // Use readelf for stable structural metadata (header/program/sections/symbols).
     if (has_readelf) {
         const std::string qbin = ShellQuote(binary_path);
 
@@ -110,6 +112,7 @@ int HandleInspect(const std::vector<std::string> &args) {
         notes.push_back("readelf missing");
     }
 
+    // Fallback linkage guess if program-header probing was inconclusive.
     if (linkage == "unknown") {
         const std::string type_lower = ToLower(elf_type);
         if (type_lower.find("dyn") != std::string::npos) {
@@ -119,6 +122,7 @@ int HandleInspect(const std::vector<std::string> &args) {
         }
     }
 
+    // Exercise disassembler availability; analysis output remains metadata-first.
     if (!disassembler.empty()) {
         if (RunCommandStatus(disassembler + " -d " + ShellQuote(binary_path) + NullRedirect()) != 0) {
             notes.push_back(disassembler + " -d failed");
@@ -142,6 +146,7 @@ int HandleInspect(const std::vector<std::string> &args) {
         }
     }
 
+    // Optional machine-readable artifact.
     if (!json_path.empty()) {
         std::ostringstream json;
         json << "{\n"

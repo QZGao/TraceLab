@@ -9,6 +9,7 @@ namespace tracelab {
 
 namespace {
 
+// Tokenizes a summary row by collapsing variable whitespace.
 std::vector<std::string> SplitWhitespace(const std::string &line) {
     std::istringstream in(line);
     std::vector<std::string> tokens;
@@ -19,6 +20,7 @@ std::vector<std::string> SplitWhitespace(const std::string &line) {
     return tokens;
 }
 
+// Best-effort integer parse helper used for call/error counts.
 std::optional<long long> ParseLongLong(const std::string &value) {
     try {
         return std::stoll(value);
@@ -27,6 +29,7 @@ std::optional<long long> ParseLongLong(const std::string &value) {
     }
 }
 
+// Parses float values, tolerating localized decimal/grouping separators.
 std::optional<double> ParseDouble(const std::string &value) {
     std::string normalized = Trim(value);
     normalized.erase(std::remove(normalized.begin(), normalized.end(), ' '), normalized.end());
@@ -48,6 +51,7 @@ std::optional<double> ParseDouble(const std::string &value) {
 
 } // namespace
 
+// Parses `strace -c` summary output into per-syscall rows and total time.
 bool ParseStraceSummaryOutput(const std::string &text, StraceSummaryData *data) {
     if (data == nullptr) {
         return false;

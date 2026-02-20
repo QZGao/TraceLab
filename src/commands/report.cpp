@@ -6,6 +6,7 @@
 
 namespace tracelab {
 
+// Implements `tracelab report`: renders a concise summary from a run-result JSON file.
 int HandleReport(const std::vector<std::string> &args) {
     if (args.empty() || args[0] == "--help") {
         std::cout << "Usage: tracelab report <result.json>\n";

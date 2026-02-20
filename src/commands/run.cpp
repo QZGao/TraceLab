@@ -12,10 +12,12 @@ namespace tracelab {
 
 namespace {
 
+// Emits JSON boolean literals without pulling in a JSON library.
 std::string JsonBool(bool value) {
     return value ? "true" : "false";
 }
 
+// Emits either an integer value or JSON null for optional fields.
 std::string JsonIntOrNull(bool has_value, long long value) {
     if (!has_value) {
         return "null";
@@ -23,6 +25,7 @@ std::string JsonIntOrNull(bool has_value, long long value) {
     return std::to_string(value);
 }
 
+// Appends shared collector status fields at a fixed indentation level.
 void AppendCollectorStatusFields(std::ostringstream &out, const CollectorStatus &status, int indent) {
     const std::string pad(indent, ' ');
     out << pad << "\"status\": \"" << JsonEscape(status.status) << "\"";
@@ -31,6 +34,7 @@ void AppendCollectorStatusFields(std::ostringstream &out, const CollectorStatus 
     }
 }
 
+// Serializes `perf stat` collector output into the run-result JSON shape.
 std::string PerfCollectorToJson(const PerfStatResult &perf) {
     std::ostringstream out;
     out << "{\n";
@@ -66,6 +70,7 @@ std::string PerfCollectorToJson(const PerfStatResult &perf) {
     return out.str();
 }
 
+// Serializes `strace -c` collector output, keeping the top syscall rows.
 std::string StraceCollectorToJson(const StraceSummaryResult &strace) {
     std::ostringstream out;
     out << "{\n";
@@ -104,6 +109,7 @@ std::string StraceCollectorToJson(const StraceSummaryResult &strace) {
     return out.str();
 }
 
+// Serializes `/proc/<pid>/status` fallback sampling fields.
 std::string ProcCollectorToJson(const WorkloadRunResult &workload) {
     std::ostringstream out;
     out << "{\n";
@@ -124,12 +130,14 @@ std::string ProcCollectorToJson(const WorkloadRunResult &workload) {
     return out.str();
 }
 
+// Strict mode currently accepts only fully successful collectors.
 bool IsCollectorUsableInStrictMode(const CollectorStatus &status) {
     return status.status == "ok";
 }
 
 } // namespace
 
+// Implements `tracelab run`: execute workload, run collectors, emit report JSON.
 int HandleRun(const std::vector<std::string> &args) {
     std::string mode = "native";
     std::string qemu_arch;
@@ -137,6 +145,7 @@ int HandleRun(const std::vector<std::string> &args) {
     bool strict = false;
     int collector_timeout_sec = 120;
 
+    // Split CLI args into TraceLab options and workload argv (`--` separator).
     size_t separator = args.size();
     for (size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--") {
@@ -154,6 +163,7 @@ int HandleRun(const std::vector<std::string> &args) {
         return 2;
     }
 
+    // Parse TraceLab options before the workload separator.
     for (size_t i = 0; i < separator; ++i) {
         const std::string &arg = args[i];
         if (arg == "--native") {
@@ -200,6 +210,7 @@ int HandleRun(const std::vector<std::string> &args) {
         }
     }
 
+    // Forward everything after `--` to the workload.
     std::vector<std::string> workload_args;
     for (size_t i = separator + 1; i < args.size(); ++i) {
         workload_args.push_back(args[i]);
@@ -209,6 +220,7 @@ int HandleRun(const std::vector<std::string> &args) {
         return 2;
     }
 
+    // Compose the executable argv (optionally prefixed with qemu-<arch>).
     std::vector<std::string> exec_args = workload_args;
     if (mode == "qemu") {
         if (qemu_arch.empty()) {
@@ -223,6 +235,7 @@ int HandleRun(const std::vector<std::string> &args) {
         exec_args.insert(exec_args.begin(), qemu_bin);
     }
 
+    // In strict mode, fail early if required Linux collectors are unavailable.
     if (strict) {
         if (HostOs() != "linux") {
             std::cerr << "run: strict mode requires Linux collectors\n";
@@ -240,6 +253,7 @@ int HandleRun(const std::vector<std::string> &args) {
     const PerfStatResult perf = CollectPerfStat(exec_args, collector_timeout_sec);
     const StraceSummaryResult strace = CollectStraceSummary(exec_args, collector_timeout_sec);
 
+    // Strict mode treats any non-ok collector status as a hard failure.
     if (strict &&
         (!IsCollectorUsableInStrictMode(workload.proc_collector_status) ||
          !IsCollectorUsableInStrictMode(perf.status) ||
@@ -254,6 +268,7 @@ int HandleRun(const std::vector<std::string> &args) {
     std::ostringstream duration;
     duration << std::fixed << std::setprecision(6) << workload.wall_time_sec;
 
+    // Emit a deterministic JSON artifact for CI and post-processing.
     std::ostringstream json;
     json << "{\n"
          << "  \"schema_version\": \"" << kSchemaVersion << "\",\n"

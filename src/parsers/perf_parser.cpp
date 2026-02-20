@@ -9,6 +9,7 @@ namespace tracelab {
 
 namespace {
 
+// Normalizes locale/grouping variants before numeric parsing.
 std::string CanonicalizeNumericText(std::string value) {
     value = Trim(value);
 
@@ -35,6 +36,7 @@ std::string CanonicalizeNumericText(std::string value) {
     return value;
 }
 
+// Splits perf CSV rows; some locales/tools emit ';' instead of ','.
 std::vector<std::string> SplitCsv(const std::string &line) {
     const char delimiter = (line.find(';') != std::string::npos) ? ';' : ',';
     std::vector<std::string> parts;
@@ -51,6 +53,7 @@ std::vector<std::string> SplitCsv(const std::string &line) {
     return parts;
 }
 
+// Parses a possibly localized numeric token into double.
 std::optional<double> ParseNumericCounter(const std::string &value) {
     const std::string canonical = CanonicalizeNumericText(value);
     std::string cleaned;
@@ -72,6 +75,7 @@ std::optional<double> ParseNumericCounter(const std::string &value) {
 
 } // namespace
 
+// Parses `perf stat -x,` output and captures known counter names.
 bool ParsePerfStatCsvOutput(const std::string &text, PerfStatData *data) {
     if (data == nullptr) {
         return false;

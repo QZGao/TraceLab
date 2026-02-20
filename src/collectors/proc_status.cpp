@@ -15,6 +15,7 @@ namespace tracelab {
 
 namespace {
 
+// Parses an integer prefix from lines like "123 kB".
 std::optional<long long> ParseLeadingInteger(const std::string &value) {
     std::istringstream in(value);
     long long parsed = 0;
@@ -24,6 +25,7 @@ std::optional<long long> ParseLeadingInteger(const std::string &value) {
     return std::nullopt;
 }
 
+// Extracts RSS/context-switch fields from /proc/<pid>/status text.
 void UpdateProcSampleFromStatusText(const std::string &status_text, ProcStatusSample *sample) {
     std::istringstream in(status_text);
     std::string line;
@@ -55,6 +57,7 @@ void UpdateProcSampleFromStatusText(const std::string &status_text, ProcStatusSa
 }
 
 #ifdef __linux__
+// Converts waitpid status to a shell-like exit code and classification string.
 int DecodeWaitStatus(int status, std::string *classification) {
     if (WIFEXITED(status)) {
         if (classification != nullptr) {
@@ -77,6 +80,7 @@ int DecodeWaitStatus(int status, std::string *classification) {
 
 } // namespace
 
+// Runs a workload and samples /proc status while the process is alive.
 WorkloadRunResult RunWithProcSampling(const std::vector<std::string> &command) {
     WorkloadRunResult result;
     if (command.empty()) {
@@ -109,6 +113,7 @@ WorkloadRunResult RunWithProcSampling(const std::vector<std::string> &command) {
         _exit(127);
     }
 
+    // Poll /proc/<pid>/status until child exits to collect fallback metrics.
     bool saw_proc_status = false;
     int wait_status = 0;
     while (true) {

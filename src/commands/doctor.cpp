@@ -9,12 +9,14 @@ namespace tracelab {
 
 namespace {
 
+// Encodes a probe result as "found"/"missing" for CLI/JSON output.
 std::string ToolState(bool found) {
     return found ? "found" : "missing";
 }
 
 } // namespace
 
+// Implements `tracelab doctor`: probes toolchain/runtime dependencies.
 int HandleDoctor(const std::vector<std::string> &args) {
     std::string json_path;
     for (size_t i = 0; i < args.size(); ++i) {

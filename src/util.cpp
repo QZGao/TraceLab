@@ -16,6 +16,7 @@
 
 namespace tracelab {
 
+// Trims leading/trailing ASCII whitespace.
 std::string Trim(const std::string &value) {
     const std::string whitespace = " \t\r\n";
     const size_t begin = value.find_first_not_of(whitespace);
@@ -26,10 +27,12 @@ std::string Trim(const std::string &value) {
     return value.substr(begin, end - begin + 1);
 }
 
+// Checks whether `value` starts with `prefix`.
 bool StartsWith(const std::string &value, const std::string &prefix) {
     return value.rfind(prefix, 0) == 0;
 }
 
+// Lowercases ASCII characters without locale dependencies.
 std::string ToLower(std::string value) {
     for (char &ch : value) {
         if (ch >= 'A' && ch <= 'Z') {
@@ -39,6 +42,7 @@ std::string ToLower(std::string value) {
     return value;
 }
 
+// Escapes raw text for safe insertion into JSON string values.
 std::string JsonEscape(const std::string &value) {
     std::ostringstream out;
     for (unsigned char ch : value) {
@@ -77,6 +81,7 @@ std::string JsonEscape(const std::string &value) {
     return out.str();
 }
 
+// Quotes a shell argument for the host platform shell.
 std::string ShellQuote(const std::string &value) {
 #ifdef _WIN32
     std::string escaped = "\"";
@@ -106,6 +111,7 @@ std::string ShellQuote(const std::string &value) {
 #endif
 }
 
+// Joins arguments verbatim for display.
 std::string JoinRaw(const std::vector<std::string> &parts) {
     std::ostringstream out;
     for (size_t i = 0; i < parts.size(); ++i) {
@@ -117,6 +123,7 @@ std::string JoinRaw(const std::vector<std::string> &parts) {
     return out.str();
 }
 
+// Joins arguments with shell quoting for command execution strings.
 std::string JoinQuoted(const std::vector<std::string> &parts) {
     std::ostringstream out;
     for (size_t i = 0; i < parts.size(); ++i) {
@@ -128,6 +135,7 @@ std::string JoinQuoted(const std::vector<std::string> &parts) {
     return out.str();
 }
 
+// Normalizes platform-specific process status codes.
 static int DecodeProcessStatus(int status) {
 #ifdef _WIN32
     return status;
@@ -145,11 +153,13 @@ static int DecodeProcessStatus(int status) {
 #endif
 }
 
+// Runs a shell command and returns decoded exit status only.
 int RunCommandStatus(const std::string &command) {
     const int status = std::system(command.c_str());
     return DecodeProcessStatus(status);
 }
 
+// Runs a shell command and captures combined stdout/stderr text.
 CommandResult RunCommandCapture(const std::string &command) {
 #ifdef _WIN32
     FILE *pipe = _popen(command.c_str(), "r");
@@ -175,6 +185,7 @@ CommandResult RunCommandCapture(const std::string &command) {
     return {DecodeProcessStatus(status), output};
 }
 
+// Checks whether an executable can be resolved from PATH.
 bool CommandExists(const std::string &tool) {
 #ifdef _WIN32
     const std::string command = "where " + ShellQuote(tool) + NullRedirect();
@@ -184,6 +195,7 @@ bool CommandExists(const std::string &tool) {
     return RunCommandStatus(command) == 0;
 }
 
+// Writes a text file, creating parent directories when needed.
 bool WriteTextFile(const std::string &path, const std::string &content, std::string *error) {
     const std::filesystem::path output_path(path);
     if (output_path.has_parent_path()) {
@@ -214,6 +226,7 @@ bool WriteTextFile(const std::string &path, const std::string &content, std::str
     return true;
 }
 
+// Reads an entire text file into memory.
 std::optional<std::string> ReadTextFile(const std::string &path) {
     std::ifstream in(path, std::ios::in);
     if (!in) {
@@ -224,11 +237,13 @@ std::optional<std::string> ReadTextFile(const std::string &path) {
     return out.str();
 }
 
+// Lightweight file existence check used by CLI argument validation.
 bool FileExists(const std::string &path) {
     std::ifstream in(path, std::ios::in);
     return static_cast<bool>(in);
 }
 
+// Returns current UTC time in ISO-8601 format used by JSON artifacts.
 std::string NowUtcIso8601() {
     using std::chrono::system_clock;
     const auto now = system_clock::now();
@@ -244,6 +259,7 @@ std::string NowUtcIso8601() {
     return buffer;
 }
 
+// Best-effort host OS identifier for artifact metadata.
 std::string HostOs() {
 #if defined(_WIN32)
     return "windows";
@@ -256,6 +272,7 @@ std::string HostOs() {
 #endif
 }
 
+// Best-effort host architecture identifier for artifact metadata.
 std::string HostArch() {
 #if defined(_M_X64) || defined(__x86_64__)
     return "x86_64";
@@ -270,6 +287,7 @@ std::string HostArch() {
 #endif
 }
 
+// Returns short git SHA when repository/git is available.
 std::string DetectGitSha() {
 #ifdef _WIN32
     const std::string command = "git rev-parse --short HEAD 2>NUL";
@@ -284,6 +302,7 @@ std::string DetectGitSha() {
     return "unknown";
 }
 
+// Extracts a top-level JSON string field with a simple regex.
 std::optional<std::string> ExtractJsonString(const std::string &text, const std::string &key) {
     const std::regex pattern("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"");
     std::smatch match;
@@ -293,6 +312,7 @@ std::optional<std::string> ExtractJsonString(const std::string &text, const std:
     return std::nullopt;
 }
 
+// Extracts a top-level JSON numeric field with a simple regex.
 std::optional<double> ExtractJsonNumber(const std::string &text, const std::string &key) {
     const std::regex pattern("\"" + key + "\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?)");
     std::smatch match;
@@ -306,6 +326,7 @@ std::optional<double> ExtractJsonNumber(const std::string &text, const std::stri
     return std::nullopt;
 }
 
+// Extracts a top-level JSON integer field with a simple regex.
 std::optional<int> ExtractJsonInteger(const std::string &text, const std::string &key) {
     const std::regex pattern("\"" + key + "\"\\s*:\\s*(-?[0-9]+)");
     std::smatch match;
@@ -319,6 +340,7 @@ std::optional<int> ExtractJsonInteger(const std::string &text, const std::string
     return std::nullopt;
 }
 
+// Extracts `collectors.<collector>.status` from TraceLab run JSON text.
 std::optional<std::string> ExtractCollectorStatus(const std::string &text,
                                                   const std::string &collector) {
     const std::regex pattern("\"" + collector +
@@ -330,6 +352,7 @@ std::optional<std::string> ExtractCollectorStatus(const std::string &text,
     return std::nullopt;
 }
 
+// Extracts "Label: value" style text fields from command output.
 std::optional<std::string> ExtractLabeledField(const std::string &text, const std::string &label) {
     std::istringstream in(text);
     std::string line;
@@ -342,6 +365,7 @@ std::optional<std::string> ExtractLabeledField(const std::string &text, const st
     return std::nullopt;
 }
 
+// Platform-specific redirect fragment to suppress command output.
 const char *NullRedirect() {
 #ifdef _WIN32
     return " >NUL 2>&1";
