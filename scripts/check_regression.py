@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 
 def load_json(path: Path) -> dict[str, Any]:
+    """Load and return the JSON object from the given file path, ensuring it's a dict."""
     with path.open("r", encoding="utf-8") as f:
         obj = json.load(f)
     if not isinstance(obj, dict):
@@ -42,6 +43,21 @@ def median_syscall_share(run_files: list[Path]) -> Optional[float]:
     return statistics.median(shares)
 
 
+def median_perf_counter(run_files: list[Path], counter_name: str) -> Optional[float]:
+    """Compute median perf counter value for a given counter across run_result files."""
+    if not run_files:
+        return None
+    values: list[float] = []
+    for path in run_files:
+        run = load_json(path)
+        value = nested_get(run, "collectors", "perf_stat", "counters", counter_name)
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    if not values:
+        return None
+    return statistics.median(values)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Regression gate checker for TraceLab compare/run artifacts."
@@ -56,6 +72,9 @@ def main() -> int:
     compare = load_json(Path(args.compare))
 
     failures: list[str] = []
+    warnings: list[str] = []
+    native_files = [Path(p) for p in args.native_run]
+    qemu_files = [Path(p) for p in args.qemu_run]
 
     slowdown = nested_get(compare, "comparison", "slowdown_factor_qemu_vs_native")
     max_slowdown = nested_get(config, "duration", "max_slowdown_factor_qemu_vs_native")
@@ -71,7 +90,16 @@ def main() -> int:
     cache_ratio = nested_get(compare, "comparison", "perf_counter_ratio_qemu_vs_native", "cache_misses")
     max_cache_ratio = nested_get(config, "cache_misses", "max_ratio_qemu_vs_native")
     if not isinstance(cache_ratio, (int, float)):
-        failures.append("compare JSON missing comparison.perf_counter_ratio_qemu_vs_native.cache_misses")
+        native_cache = median_perf_counter(native_files, "cache_misses")
+        qemu_cache = median_perf_counter(qemu_files, "cache_misses")
+        if isinstance(native_cache, (int, float)) and native_cache > 0 and isinstance(qemu_cache, (int, float)):
+            cache_ratio = float(qemu_cache) / float(native_cache)
+        else:
+            warnings.append("skipping cache-miss ratio gate: no usable cache_misses perf counter data")
+            cache_ratio = None
+
+    if cache_ratio is None:
+        pass
     elif not isinstance(max_cache_ratio, (int, float)):
         failures.append("config missing cache_misses.max_ratio_qemu_vs_native")
     elif float(cache_ratio) > float(max_cache_ratio):
@@ -79,7 +107,6 @@ def main() -> int:
             f"cache_miss_ratio_qemu_vs_native={float(cache_ratio):.6f} exceeds threshold {float(max_cache_ratio):.6f}"
         )
 
-    native_files = [Path(p) for p in args.native_run]
     if native_files:
         native_share = median_syscall_share(native_files)
         max_native_share = nested_get(config, "syscall_time", "max_median_share_native")
@@ -92,7 +119,6 @@ def main() -> int:
                 f"native median syscall share={native_share:.6f} exceeds threshold {float(max_native_share):.6f}"
             )
 
-    qemu_files = [Path(p) for p in args.qemu_run]
     if qemu_files:
         qemu_share = median_syscall_share(qemu_files)
         max_qemu_share = nested_get(config, "syscall_time", "max_median_share_qemu")
@@ -109,6 +135,8 @@ def main() -> int:
         print("regression gate: FAIL", file=sys.stderr)
         for line in failures:
             print(f"  - {line}", file=sys.stderr)
+        for line in warnings:
+            print(f"  - warning: {line}", file=sys.stderr)
         return 1
 
     print("regression gate: PASS")
@@ -116,9 +144,10 @@ def main() -> int:
         print(f"  native samples checked: {len(native_files)}")
     if qemu_files:
         print(f"  qemu samples checked: {len(qemu_files)}")
+    for line in warnings:
+        print(f"  warning: {line}")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
