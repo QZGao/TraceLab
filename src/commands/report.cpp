@@ -3,8 +3,49 @@
 
 #include <iomanip>
 #include <iostream>
+#include <regex>
+#include <vector>
 
 namespace tracelab {
+
+namespace {
+
+// Collects diagnosis evidence triplets emitted in run-result JSON.
+std::vector<std::string> ExtractDiagnosisEvidenceLines(const std::string &json_text) {
+    std::vector<std::string> lines;
+    const std::regex pattern(
+        "\"metric\"\\s*:\\s*\"([^\"]*)\"\\s*,\\s*\"value\"\\s*:\\s*\"([^\"]*)\"\\s*,\\s*\"detail\""
+        "\\s*:\\s*\"([^\"]*)\"");
+    for (std::sregex_iterator it(json_text.begin(), json_text.end(), pattern), end; it != end; ++it) {
+        const std::smatch &m = *it;
+        if (m.size() >= 4) {
+            lines.push_back(m[1].str() + ": " + m[2].str() + " (" + m[3].str() + ")");
+        }
+    }
+    return lines;
+}
+
+// Collects quoted strings from `diagnosis.limitations`.
+std::vector<std::string> ExtractDiagnosisLimitations(const std::string &json_text) {
+    std::vector<std::string> limitations;
+    const std::regex block_pattern("\"limitations\"\\s*:\\s*\\[([^\\]]*)\\]");
+    std::smatch block_match;
+    if (!std::regex_search(json_text, block_match, block_pattern) || block_match.size() < 2) {
+        return limitations;
+    }
+
+    const std::string block = block_match[1].str();
+    const std::regex item_pattern("\"([^\"]*)\"");
+    for (std::sregex_iterator it(block.begin(), block.end(), item_pattern), end; it != end; ++it) {
+        const std::smatch &m = *it;
+        if (m.size() >= 2) {
+            limitations.push_back(m[1].str());
+        }
+    }
+    return limitations;
+}
+
+} // namespace
 
 // Implements `tracelab report`: renders a concise summary from a run-result JSON file.
 int HandleReport(const std::vector<std::string> &args) {
@@ -40,6 +81,12 @@ int HandleReport(const std::vector<std::string> &args) {
         ExtractCollectorStatus(content.value(), "strace_summary").value_or("unknown");
     const std::string proc =
         ExtractCollectorStatus(content.value(), "proc_status").value_or("unknown");
+    const std::string diagnosis_label =
+        ExtractJsonString(content.value(), "label").value_or("inconclusive");
+    const std::string diagnosis_confidence =
+        ExtractJsonString(content.value(), "confidence").value_or("unknown");
+    const std::vector<std::string> evidence_lines = ExtractDiagnosisEvidenceLines(content.value());
+    const std::vector<std::string> limitations = ExtractDiagnosisLimitations(content.value());
 
     std::cout << "TraceLab Report\n";
     std::cout << "  Source: " << path << "\n";
@@ -58,6 +105,24 @@ int HandleReport(const std::vector<std::string> &args) {
     }
     std::cout << "  Collectors: perf_stat=" << perf << ", strace_summary=" << strace
               << ", proc_status=" << proc << "\n";
+    std::cout << "  Diagnosis: " << diagnosis_label << "\n";
+    std::cout << "  Confidence: " << diagnosis_confidence << "\n";
+    std::cout << "  Evidence:\n";
+    if (evidence_lines.empty()) {
+        std::cout << "    - unavailable\n";
+    } else {
+        for (const std::string &line : evidence_lines) {
+            std::cout << "    - " << line << "\n";
+        }
+    }
+    std::cout << "  Limitations:\n";
+    if (limitations.empty()) {
+        std::cout << "    - none captured\n";
+    } else {
+        for (const std::string &line : limitations) {
+            std::cout << "    - " << line << "\n";
+        }
+    }
 
     return 0;
 }

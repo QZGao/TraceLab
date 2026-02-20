@@ -12,6 +12,7 @@ option(TRACELAB_RUN_SCHEMA_TESTS "Run schema validation tests (requires python j
 
 add_executable(tracelab
     src/main.cpp
+    src/diagnosis/rules.cpp
     src/qemu.cpp
     src/util.cpp
     src/parsers/perf_parser.cpp
@@ -58,6 +59,24 @@ if (BUILD_TESTING AND TRACELAB_BUILD_TESTS)
     add_test(
         NAME parser_tests
         COMMAND tracelab_parser_tests
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+    add_executable(tracelab_diagnosis_tests
+        src/diagnosis/rules.cpp
+        src/util.cpp
+        tests/unit/diagnosis_rules_tests.cpp
+    )
+    target_include_directories(tracelab_diagnosis_tests PRIVATE include)
+    if (MSVC)
+        target_compile_options(tracelab_diagnosis_tests PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(tracelab_diagnosis_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    add_test(
+        NAME diagnosis_rules_tests
+        COMMAND tracelab_diagnosis_tests
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 

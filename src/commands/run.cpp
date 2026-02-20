@@ -1,6 +1,7 @@
 #include "tracelab/collectors.h"
 #include "tracelab/commands.h"
 #include "tracelab/constants.h"
+#include "tracelab/diagnosis.h"
 #include "tracelab/qemu.h"
 #include "tracelab/util.h"
 
@@ -278,6 +279,7 @@ int HandleRun(const std::vector<std::string> &args) {
     const WorkloadRunResult workload = RunWithProcSampling(exec_args);
     const PerfStatResult perf = CollectPerfStat(exec_args, collector_timeout_sec);
     const StraceSummaryResult strace = CollectStraceSummary(exec_args, collector_timeout_sec);
+    const DiagnosisResult diagnosis = DiagnoseRun(workload, perf, strace, mode);
 
     // Strict mode treats any non-ok collector status as a hard failure.
     if (strict &&
@@ -322,7 +324,8 @@ int HandleRun(const std::vector<std::string> &args) {
          << JsonIntOrNull(workload.proc_sample.has_nonvoluntary_ctxt_switches,
                           workload.proc_sample.nonvoluntary_ctxt_switches)
          << "\n"
-         << "  },\n";
+         << "  },\n"
+         << "  \"diagnosis\": " << DiagnosisToJson(diagnosis, 2) << ",\n";
 
     if (mode == "qemu") {
         json << "  \"qemu\": {\n"
@@ -365,6 +368,7 @@ int HandleRun(const std::vector<std::string> &args) {
     std::cout << "  Collector perf_stat: " << perf.status.status << "\n";
     std::cout << "  Collector strace_summary: " << strace.status.status << "\n";
     std::cout << "  Collector proc_status: " << workload.proc_collector_status.status << "\n";
+    std::cout << "  Diagnosis: " << diagnosis.label << " (confidence: " << diagnosis.confidence << ")\n";
 
     if (!json_path.empty()) {
         std::string error;

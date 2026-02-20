@@ -48,6 +48,23 @@ def main() -> int:
         if fallback.get("exit_classification") not in ("exit_code", "signal", "unknown"):
             print("invalid fallback.exit_classification", file=sys.stderr)
             return 1
+        diagnosis = data.get("diagnosis", {})
+        if diagnosis.get("label") not in (
+            "cpu-bound",
+            "syscall-heavy",
+            "io-bound",
+            "memory-pressure",
+            "inconclusive",
+        ):
+            print("missing or invalid diagnosis.label", file=sys.stderr)
+            return 1
+        if diagnosis.get("confidence") not in ("low", "medium", "high"):
+            print("missing or invalid diagnosis.confidence", file=sys.stderr)
+            return 1
+        evidence = diagnosis.get("evidence", [])
+        if not isinstance(evidence, list) or len(evidence) < 2:
+            print("diagnosis.evidence must contain at least two entries", file=sys.stderr)
+            return 1
 
     return 0
 

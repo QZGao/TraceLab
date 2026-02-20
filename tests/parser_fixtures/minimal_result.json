@@ -6,6 +6,25 @@
   "command": "/bin/echo hello",
   "duration_sec": 0.001,
   "exit_code": 0,
+  "diagnosis": {
+    "label": "inconclusive",
+    "confidence": "low",
+    "evidence": [
+      {
+        "metric": "wall_time_sec",
+        "value": "0.001000",
+        "detail": "Elapsed runtime from fallback timer."
+      },
+      {
+        "metric": "collector_statuses",
+        "value": "perf=unavailable, strace=unavailable, proc=unavailable",
+        "detail": "Collector availability influences diagnosis confidence."
+      }
+    ],
+    "limitations": [
+      "No rule crossed confidence thresholds for CPU, syscall, I/O, or memory pressure."
+    ]
+  },
   "host": {
     "os": "linux",
     "arch": "x86_64",

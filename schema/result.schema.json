@@ -12,6 +12,7 @@
     "command",
     "duration_sec",
     "exit_code",
+    "diagnosis",
     "host",
     "collectors"
   ],
@@ -51,6 +52,49 @@
     },
     "strict": {
       "type": "boolean"
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "confidence",
+        "evidence",
+        "limitations"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "enum": [
+            "cpu-bound",
+            "syscall-heavy",
+            "io-bound",
+            "memory-pressure",
+            "inconclusive"
+          ]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/diagnosisEvidence"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "qemu": {
       "type": "object",
@@ -128,6 +172,28 @@
         },
         "reason": {
           "type": "string"
+        }
+      }
+    },
+    "diagnosisEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "value",
+        "detail"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

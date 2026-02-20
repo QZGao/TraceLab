@@ -13,7 +13,7 @@ It has two main modes:
 
 - `tracelab doctor`: checks required and optional toolchain dependencies.
 - `tracelab run`: runs workloads in native or QEMU mode and emits structured JSON.
-- `tracelab report`: renders a human-readable summary from `result.json`.
+- `tracelab report`: renders diagnosis, evidence, confidence, and limitations from `result.json`.
 - `tracelab inspect`: ISA/ABI/linkage/symbol hints plus QEMU architecture selector hints.
 
 ## Repository Layout
@@ -157,4 +157,5 @@ python scripts/validate_schema.py \
 - Collection is Linux-first. On non-Linux hosts, Linux-specific collectors degrade to `unavailable`.
 - `run` currently uses a replay strategy (`collection_strategy = main_run_plus_replay_collectors`) so collectors may run the workload more than once.
 - `strict` mode requires usable collectors; otherwise the command exits with error.
+- `run` includes a rule-based diagnosis with cited evidence metrics in output JSON.
 - `inspect` relies on host tools (`readelf`, `objdump`/`llvm-objdump`) and degrades when unavailable.
