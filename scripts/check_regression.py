@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import statistics
+import sys
+from pathlib import Path
+from typing import Any, Optional
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        obj = json.load(f)
+    if not isinstance(obj, dict):
+        raise ValueError(f"{path} is not a JSON object")
+    return obj
+
+
+def nested_get(obj: dict[str, Any], *keys: str) -> Any:
+    """Safely get a nested value from a dict, returning None if any key is missing or if the path is not a dict."""
+    cur: Any = obj
+    for key in keys:
+        if not isinstance(cur, dict) or key not in cur:
+            return None
+        cur = cur[key]
+    return cur
+
+
+def median_syscall_share(run_files: list[Path]) -> Optional[float]:
+    """Compute the median syscall time share across the given run_result JSON files."""
+    if not run_files:
+        return None
+    shares: list[float] = []
+    for path in run_files:
+        run = load_json(path)
+        duration = nested_get(run, "duration_sec")
+        syscall_total = nested_get(run, "collectors", "strace_summary", "total_time_sec")
+        if not isinstance(duration, (int, float)) or duration <= 0:
+            raise ValueError(f"{path} missing valid duration_sec")
+        if not isinstance(syscall_total, (int, float)):
+            raise ValueError(f"{path} missing collectors.strace_summary.total_time_sec")
+        shares.append(float(syscall_total) / float(duration))
+    return statistics.median(shares)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Regression gate checker for TraceLab compare/run artifacts."
+    )
+    parser.add_argument("--config", required=True, help="Threshold config JSON path")
+    parser.add_argument("--compare", required=True, help="compare_result JSON path")
+    parser.add_argument("--native-run", action="append", default=[], help="native run_result JSON path")
+    parser.add_argument("--qemu-run", action="append", default=[], help="qemu run_result JSON path")
+    args = parser.parse_args()
+
+    config = load_json(Path(args.config))
+    compare = load_json(Path(args.compare))
+
+    failures: list[str] = []
+
+    slowdown = nested_get(compare, "comparison", "slowdown_factor_qemu_vs_native")
+    max_slowdown = nested_get(config, "duration", "max_slowdown_factor_qemu_vs_native")
+    if not isinstance(slowdown, (int, float)):
+        failures.append("compare JSON missing comparison.slowdown_factor_qemu_vs_native")
+    elif not isinstance(max_slowdown, (int, float)):
+        failures.append("config missing duration.max_slowdown_factor_qemu_vs_native")
+    elif float(slowdown) > float(max_slowdown):
+        failures.append(
+            f"slowdown_factor_qemu_vs_native={float(slowdown):.6f} exceeds threshold {float(max_slowdown):.6f}"
+        )
+
+    cache_ratio = nested_get(compare, "comparison", "perf_counter_ratio_qemu_vs_native", "cache_misses")
+    max_cache_ratio = nested_get(config, "cache_misses", "max_ratio_qemu_vs_native")
+    if not isinstance(cache_ratio, (int, float)):
+        failures.append("compare JSON missing comparison.perf_counter_ratio_qemu_vs_native.cache_misses")
+    elif not isinstance(max_cache_ratio, (int, float)):
+        failures.append("config missing cache_misses.max_ratio_qemu_vs_native")
+    elif float(cache_ratio) > float(max_cache_ratio):
+        failures.append(
+            f"cache_miss_ratio_qemu_vs_native={float(cache_ratio):.6f} exceeds threshold {float(max_cache_ratio):.6f}"
+        )
+
+    native_files = [Path(p) for p in args.native_run]
+    if native_files:
+        native_share = median_syscall_share(native_files)
+        max_native_share = nested_get(config, "syscall_time", "max_median_share_native")
+        if native_share is None:
+            failures.append("unable to compute native syscall share")
+        elif not isinstance(max_native_share, (int, float)):
+            failures.append("config missing syscall_time.max_median_share_native")
+        elif native_share > float(max_native_share):
+            failures.append(
+                f"native median syscall share={native_share:.6f} exceeds threshold {float(max_native_share):.6f}"
+            )
+
+    qemu_files = [Path(p) for p in args.qemu_run]
+    if qemu_files:
+        qemu_share = median_syscall_share(qemu_files)
+        max_qemu_share = nested_get(config, "syscall_time", "max_median_share_qemu")
+        if qemu_share is None:
+            failures.append("unable to compute qemu syscall share")
+        elif not isinstance(max_qemu_share, (int, float)):
+            failures.append("config missing syscall_time.max_median_share_qemu")
+        elif qemu_share > float(max_qemu_share):
+            failures.append(
+                f"qemu median syscall share={qemu_share:.6f} exceeds threshold {float(max_qemu_share):.6f}"
+            )
+
+    if failures:
+        print("regression gate: FAIL", file=sys.stderr)
+        for line in failures:
+            print(f"  - {line}", file=sys.stderr)
+        return 1
+
+    print("regression gate: PASS")
+    if native_files:
+        print(f"  native samples checked: {len(native_files)}")
+    if qemu_files:
+        print(f"  qemu samples checked: {len(qemu_files)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

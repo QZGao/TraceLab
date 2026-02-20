@@ -24,7 +24,7 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-user
+          sudo apt-get install -y qemu-user strace linux-tools-common linux-tools-generic
 
       - name: Configure
         run: >
@@ -39,22 +39,94 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-      - name: Smoke run
+      - name: Select deterministic QEMU arch
         run: |
-          mkdir -p out
-          ./build/tracelab run --native --json out/result.json -- /bin/echo hello
-          ./build/tracelab report out/result.json
+          HOST_ARCH="$(uname -m)"
+          if [[ "${HOST_ARCH}" == "x86_64" ]] && command -v qemu-x86_64 >/dev/null 2>&1; then
+            QEMU_ARCH="x86_64"
+          elif command -v qemu-aarch64 >/dev/null 2>&1; then
+            QEMU_ARCH="aarch64"
+          elif command -v qemu-riscv64 >/dev/null 2>&1; then
+            QEMU_ARCH="riscv64"
+          else
+            echo "No supported qemu target available on runner" >&2
+            exit 1
+          fi
+          echo "QEMU_ARCH=${QEMU_ARCH}" >> "${GITHUB_ENV}"
+          echo "Selected QEMU_ARCH=${QEMU_ARCH}"
 
-      - name: QEMU smoke and compare
+      - name: Build microbench binaries
+        run: bash scripts/build_microbench.sh
+
+      - name: CI run + compare + threshold gate
         run: |
-          ./build/tracelab run --qemu x86_64 --json out/result_qemu_x86_64.json -- /bin/echo hello
-          ./build/tracelab compare out/result.json out/result_qemu_x86_64.json --json out/compare.json
+          mkdir -p out/ci
 
-      - name: Validate smoke JSON against schema
-        run: >
-          python scripts/validate_schema.py
-          --schema schema/result.schema.json
-          --instance out/result.json
+          ./build/tracelab doctor > out/ci/doctor.txt || true
 
-      - name: Doctor output
-        run: ./build/tracelab doctor || true
+          ./build/tracelab run --native --json out/ci/mem_bw_native.json -- ./microbench/mem_bw 32 2
+          ./build/tracelab run --native --json out/ci/syscall_rate_native.json -- ./microbench/syscall_rate 50000
+
+          ./build/tracelab run --native --json out/ci/warmup_native.json -- /bin/echo ci-warmup >/dev/null
+          ./build/tracelab run --qemu "${QEMU_ARCH}" --json out/ci/warmup_qemu.json -- /bin/echo ci-warmup >/dev/null
+
+          native_args=()
+          qemu_args=()
+          for i in $(seq 1 5); do
+            native_json="out/ci/protocol_native_${i}.json"
+            qemu_json="out/ci/protocol_qemu_${i}.json"
+            ./build/tracelab run --native --json "${native_json}" -- /bin/echo ci-protocol
+            ./build/tracelab run --qemu "${QEMU_ARCH}" --json "${qemu_json}" -- /bin/echo ci-protocol
+            native_args+=(--native "${native_json}")
+            qemu_args+=(--qemu "${qemu_json}")
+          done
+
+          ./build/tracelab compare "${native_args[@]}" "${qemu_args[@]}" --json out/ci/protocol_compare.json | tee out/ci/compare.txt
+
+          ./build/tracelab report out/ci/protocol_native_3.json > out/ci/native_report.txt
+          ./build/tracelab report out/ci/protocol_qemu_3.json > out/ci/qemu_report.txt
+
+          python scripts/check_regression.py \
+            --config config/regression_thresholds.json \
+            --compare out/ci/protocol_compare.json \
+            --native-run out/ci/protocol_native_1.json \
+            --native-run out/ci/protocol_native_2.json \
+            --native-run out/ci/protocol_native_3.json \
+            --native-run out/ci/protocol_native_4.json \
+            --native-run out/ci/protocol_native_5.json \
+            --qemu-run out/ci/protocol_qemu_1.json \
+            --qemu-run out/ci/protocol_qemu_2.json \
+            --qemu-run out/ci/protocol_qemu_3.json \
+            --qemu-run out/ci/protocol_qemu_4.json \
+            --qemu-run out/ci/protocol_qemu_5.json
+
+      - name: Validate run JSON schema
+        run: |
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/mem_bw_native.json
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/syscall_rate_native.json
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/warmup_native.json
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/warmup_qemu.json
+          for i in $(seq 1 5); do
+            python scripts/validate_schema.py --schema schema/result.schema.json --instance "out/ci/protocol_native_${i}.json"
+            python scripts/validate_schema.py --schema schema/result.schema.json --instance "out/ci/protocol_qemu_${i}.json"
+          done
+
+      - name: Synthetic regression must fail gate
+        run: |
+          set +e
+          python scripts/check_regression.py \
+            --config config/regression_thresholds.json \
+            --compare tests/parser_fixtures/synthetic_regression_compare.json
+          status=$?
+          set -e
+          if [[ "${status}" -eq 0 ]]; then
+            echo "Synthetic regression fixture was expected to fail gate but passed." >&2
+            exit 1
+          fi
+
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tracelab-ci-artifacts
+          path: out/ci/**

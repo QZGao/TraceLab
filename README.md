@@ -22,10 +22,18 @@ It has two main modes:
 ```text
 include/tracelab/        # public headers
 src/                     # implementation
-src/collectors/          # perf/strace/proc collectors
-src/parsers/             # parser logic
-schema/result.schema.json
-tests/
+  main.cpp               # CLI entrypoint
+  qemu.cpp               # qemu selector/wrapper helpers
+  util.cpp               # shared helpers
+  commands/              # doctor/run/report/inspect/compare
+  collectors/            # perf/strace/proc collectors
+  diagnosis/             # rule-based bottleneck diagnosis
+  parsers/               # parser logic
+config/                  # regression thresholds
+docs/                    # baseline artifact docs
+microbench/              # CI/demo benchmark workloads
+scripts/                 # build/test/demo helper scripts
+tests/                   # fixtures and unit/smoke tests
 ```
 
 ## Prerequisites
@@ -46,72 +54,68 @@ Optional:
 ### Linux / macOS (single-config generators)
 
 ```bash
+# Configure the project.
 cmake -S . -B build
+
+# Build the TraceLab binary and test targets.
 cmake --build build
 ```
 
 ### Windows (Visual Studio multi-config generator)
 
 ```powershell
+# Configure the project.
 cmake -S . -B build
+
+# Build the Debug binaries (required for Visual Studio generators).
 cmake --build build --config Debug
 ```
 
 ## Basic Usage
 
-### 1) Check environment
+### Quickstart
 
 ```bash
+# Check whether required tools (perf/strace/qemu/etc.) are available.
 ./build/tracelab doctor
+
+# Run a workload natively and save machine-readable results.
+./build/tracelab run --native --json out/result.json -- /bin/echo hello
+
+# Render a human summary (diagnosis + evidence) from the JSON artifact.
+./build/tracelab report out/result.json
+
+# Inspect binary ISA/ABI/linkage and get qemu selector hints.
+./build/tracelab inspect /path/to/binary
+
+# Run the same workload under QEMU user-mode.
+./build/tracelab run --qemu x86_64 --json out/qemu.json -- /bin/echo hello
+
+# Compare native vs QEMU artifacts (delta duration and throughput change).
+./build/tracelab compare out/result.json out/qemu.json --json out/compare.json
 ```
 
 On Windows Visual Studio builds:
 
 ```powershell
+# Check tool availability.
 ./build/Debug/tracelab.exe doctor
+
+# Run a native workload and emit JSON.
+./build/Debug/tracelab.exe run --native --json out/result.json -- cmd /c echo hello
+
+# Render a human-readable report from the JSON artifact.
+./build/Debug/tracelab.exe report out/result.json
 ```
 
-### 2) Run workload and emit JSON
-
-```bash
-./build/tracelab run --native --json out/result.json -- /bin/echo hello
-```
-
-### 3) Render report from JSON
-
-```bash
-./build/tracelab report out/result.json
-```
-
-### 4) Inspect binary metadata
-
-```bash
-./build/tracelab inspect /path/to/binary
-```
-
-`inspect` output includes:
-
-- supported QEMU selectors (`x86_64`, `aarch64`, `riscv64`)
-- selector hints derived from binary ISA metadata
-
-### 5) QEMU mode
-
-```bash
-./build/tracelab run --qemu x86_64 --json out/qemu.json -- /bin/echo hello
-```
-
-Supported selectors are `x86_64`, `aarch64`, and `riscv64`.
+Supported QEMU selectors are `x86_64`, `aarch64`, and `riscv64`.
 Alias inputs such as `amd64` and `arm64` are normalized automatically.
-
-### 6) Compare native vs QEMU artifacts
-
-```bash
-./build/tracelab compare out/native.json out/qemu.json --json out/compare.json
-```
+`inspect` output includes selector hints derived from binary ISA metadata.
 
 For protocol-style comparisons (median over measured runs), pass multiple artifacts:
 
 ```bash
+# Compare medians from five measured native runs vs five measured qemu runs.
 ./build/tracelab compare \
   --native out/native_run1.json --native out/native_run2.json --native out/native_run3.json \
   --native out/native_run4.json --native out/native_run5.json \
@@ -120,25 +124,51 @@ For protocol-style comparisons (median over measured runs), pass multiple artifa
   --json out/compare.json
 ```
 
+### Quick demo
+
+On a Linux machine with dependencies installed:
+
+```bash
+# Run the end-to-end Linux demo script and write artifacts to out/demo/.
+bash scripts/demo_linux.sh
+```
+
+Outputs are written to `out/demo/`.
+
+## Troubleshooting
+
+- `perf` unavailable: run `tracelab doctor`; on locked-down systems TraceLab still records fallback counters.
+- `strace` unavailable: install `strace` and rerun `tracelab doctor`.
+- `qemu-<arch>` missing: install `qemu-user`; `tracelab inspect` can suggest selector hints.
+- WSL `perf` wrapper mismatch: ensure `perf --version` works in WSL before running strict comparisons.
+- Regression gate failures: inspect uploaded CI artifacts and compare against `docs/baseline_artifacts.md`.
+
 ## Testing
 
 Default tests:
 
 ```bash
+# Run the default test suite.
 ctest --test-dir build --output-on-failure
 ```
 
 On Windows multi-config builds:
 
 ```powershell
+# Run the default test suite for the Debug configuration.
 ctest --test-dir build -C Debug --output-on-failure
 ```
 
 Enable schema-validation test:
 
 ```bash
+# Turn on schema-validation tests at configure time.
 cmake -S . -B build -DTRACELAB_RUN_SCHEMA_TESTS=ON
+
+# Rebuild after changing the test configuration.
 cmake --build build
+
+# Run tests, including schema-validation checks.
 ctest --test-dir build --output-on-failure
 ```
 
@@ -147,27 +177,15 @@ ctest --test-dir build --output-on-failure
 From inside WSL:
 
 ```bash
+# Run the Linux/WSL local end-to-end test suite.
 bash scripts/wsl_local_tests.sh
 ```
 
 From Windows PowerShell (runs the same script inside WSL):
 
 ```powershell
+# Run the same WSL suite from Windows PowerShell.
 .\scripts\run_wsl_tests.ps1
-```
-
-## Schema Validation
-
-Schema lives at:
-
-- `schema/result.schema.json`
-
-Validate an instance:
-
-```bash
-python scripts/validate_schema.py \
-  --schema schema/result.schema.json \
-  --instance out/result.json
 ```
 
 ## Notes and Limitations

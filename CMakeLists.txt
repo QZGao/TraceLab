@@ -124,6 +124,13 @@ if (BUILD_TESTING AND TRACELAB_BUILD_TESTS)
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         )
 
+        add_test(
+            NAME regression_gate_smoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${CMAKE_SOURCE_DIR}/tests/unit/regression_gate_smoke.py
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+
         if (TRACELAB_RUN_SCHEMA_TESTS)
             add_test(
                 NAME schema_validate_minimal

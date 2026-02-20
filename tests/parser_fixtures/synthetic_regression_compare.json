@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "compare_result",
+  "timestamp_utc": "2026-02-20T00:00:00Z",
+  "inputs": {
+    "native_files": [
+      "synthetic-native.json"
+    ],
+    "qemu_files": [
+      "synthetic-qemu.json"
+    ],
+    "commands_match": true,
+    "command": "/bin/echo synthetic"
+  },
+  "native": {
+    "sample_count": 5,
+    "median_duration_sec": 0.020000
+  },
+  "qemu": {
+    "sample_count": 5,
+    "median_duration_sec": 2.000000,
+    "arches": [
+      "x86_64"
+    ]
+  },
+  "comparison": {
+    "delta_duration_sec": 1.980000,
+    "slowdown_factor_qemu_vs_native": 100.000000,
+    "throughput_ratio_qemu_vs_native": 0.010000,
+    "throughput_change_percent_qemu_vs_native": -99.000000,
+    "perf_counter_ratio_qemu_vs_native": {
+      "cache_misses": 500.000000
+    }
+  },
+  "protocol": {
+    "recommended_warmup_runs": 1,
+    "recommended_measured_runs": 5,
+    "provided_native_samples": 5,
+    "provided_qemu_samples": 5,
+    "uses_recommended_sample_count": true
+  },
+  "caveats": [
+    "synthetic regression fixture"
+  ]
+}
+

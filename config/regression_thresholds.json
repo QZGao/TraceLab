@@ -1,0 +1,12 @@
+{
+  "duration": {
+    "max_slowdown_factor_qemu_vs_native": 20.0
+  },
+  "cache_misses": {
+    "max_ratio_qemu_vs_native": 80.0
+  },
+  "syscall_time": {
+    "max_median_share_native": 0.80,
+    "max_median_share_qemu": 0.95
+  }
+}

@@ -122,6 +122,12 @@ if command -v qemu-x86_64 >/dev/null 2>&1; then
     "${OUT_DIR}/result_native.json" \
     "${OUT_DIR}/result_qemu_x86_64.json" \
     --json "${OUT_DIR}/compare_native_qemu.json"
+  log "Running optional regression gate check"
+  python3 scripts/check_regression.py \
+    --config config/regression_thresholds.json \
+    --compare "${OUT_DIR}/compare_native_qemu.json" \
+    --native-run "${OUT_DIR}/result_native.json" \
+    --qemu-run "${OUT_DIR}/result_qemu_x86_64.json"
   if [[ "${HAS_JSONSCHEMA}" -eq 1 ]]; then
     python3 scripts/validate_schema.py \
       --schema schema/result.schema.json \
