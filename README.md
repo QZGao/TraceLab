@@ -116,6 +116,20 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+### On WSL
+
+From inside WSL:
+
+```bash
+bash scripts/wsl_local_tests.sh
+```
+
+From Windows PowerShell (runs the same script inside WSL):
+
+```powershell
+.\scripts\run_wsl_tests.ps1
+```
+
 ## Schema Validation
 
 Schema lives at:
