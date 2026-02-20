@@ -68,11 +68,17 @@ jobs:
           ./build/tracelab run --native --json out/ci/syscall_rate_native.json -- ./microbench/syscall_rate 50000
 
           python3 - <<'PY'
-          import os
           from pathlib import Path
           payload = Path("out/ci/startup_io_payload.bin")
-          payload.write_bytes(os.urandom(48 * 1024 * 1024))
-          print(f"created startup payload: {payload} ({payload.stat().st_size} bytes)")
+          target_size = 48 * 1024 * 1024
+          chunk = (b"TraceLabStartupIOPayloadV1\n" * 1024)
+          with payload.open("wb") as f:
+              remaining = target_size
+              while remaining > 0:
+                  data = chunk if remaining >= len(chunk) else chunk[:remaining]
+                  f.write(data)
+                  remaining -= len(data)
+          print(f"created deterministic startup payload: {payload} ({payload.stat().st_size} bytes)")
           PY
 
           if command -v sudo >/dev/null 2>&1; then
@@ -159,4 +165,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tracelab-ci-artifacts
-          path: out/ci/**
+          path: |
+            out/ci/**
+            !out/ci/startup_io_payload.bin
