@@ -12,6 +12,7 @@ option(TRACELAB_RUN_SCHEMA_TESTS "Run schema validation tests (requires python j
 
 add_executable(tracelab
     src/main.cpp
+    src/qemu.cpp
     src/util.cpp
     src/parsers/perf_parser.cpp
     src/parsers/strace_parser.cpp
@@ -41,6 +42,7 @@ if (BUILD_TESTING AND TRACELAB_BUILD_TESTS)
     find_package(Python3 COMPONENTS Interpreter QUIET)
 
     add_executable(tracelab_parser_tests
+        src/qemu.cpp
         src/util.cpp
         src/parsers/perf_parser.cpp
         src/parsers/strace_parser.cpp
@@ -56,6 +58,24 @@ if (BUILD_TESTING AND TRACELAB_BUILD_TESTS)
     add_test(
         NAME parser_tests
         COMMAND tracelab_parser_tests
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+    add_executable(tracelab_qemu_selector_tests
+        src/qemu.cpp
+        src/util.cpp
+        tests/unit/qemu_selector_tests.cpp
+    )
+    target_include_directories(tracelab_qemu_selector_tests PRIVATE include)
+    if (MSVC)
+        target_compile_options(tracelab_qemu_selector_tests PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(tracelab_qemu_selector_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    add_test(
+        NAME qemu_selector_tests
+        COMMAND tracelab_qemu_selector_tests
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 

@@ -1,6 +1,7 @@
 #include "tracelab/collectors.h"
 #include "tracelab/commands.h"
 #include "tracelab/constants.h"
+#include "tracelab/qemu.h"
 #include "tracelab/util.h"
 
 #include <algorithm>
@@ -135,6 +136,18 @@ bool IsCollectorUsableInStrictMode(const CollectorStatus &status) {
     return status.status == "ok";
 }
 
+// Renders a human-readable comma-separated list.
+std::string JoinCommaSeparated(const std::vector<std::string> &values) {
+    std::ostringstream out;
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i > 0) {
+            out << ", ";
+        }
+        out << values[i];
+    }
+    return out.str();
+}
+
 } // namespace
 
 // Implements `tracelab run`: execute workload, run collectors, emit report JSON.
@@ -227,9 +240,22 @@ int HandleRun(const std::vector<std::string> &args) {
             std::cerr << "run: qemu mode requires an architecture\n";
             return 2;
         }
+
+        const auto normalized_arch = NormalizeQemuArchSelector(qemu_arch);
+        if (!normalized_arch.has_value()) {
+            std::cerr << "run: unsupported qemu architecture selector '" << qemu_arch << "'\n";
+            std::cerr << "run: supported selectors: "
+                      << JoinCommaSeparated(SupportedQemuArchSelectors()) << "\n";
+            std::cerr << "run: tip: use `tracelab inspect <binary>` to see qemu_selector_hints\n";
+            return 2;
+        }
+        qemu_arch = normalized_arch.value();
+
         const std::string qemu_bin = "qemu-" + qemu_arch;
         if (!CommandExists(qemu_bin)) {
             std::cerr << "run: missing " << qemu_bin << " in PATH\n";
+            std::cerr << "run: install qemu-user and ensure one of these is available: "
+                      << JoinCommaSeparated(SupportedQemuArchSelectors()) << "\n";
             return 2;
         }
         exec_args.insert(exec_args.begin(), qemu_bin);

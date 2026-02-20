@@ -1,5 +1,6 @@
 #include "tracelab/commands.h"
 #include "tracelab/constants.h"
+#include "tracelab/qemu.h"
 #include "tracelab/util.h"
 
 #include <iostream>
@@ -131,6 +132,10 @@ int HandleInspect(const std::vector<std::string> &args) {
         notes.push_back("objdump and llvm-objdump missing");
     }
 
+    // Architecture hints that map directly to supported --qemu selectors.
+    const std::vector<std::string> qemu_selector_hints = QemuSelectorHintsFromIsa(isa_arch);
+    const std::vector<std::string> supported_selectors = SupportedQemuArchSelectors();
+
     std::cout << "TraceLab Inspect\n";
     std::cout << "  Binary: " << binary_path << "\n";
     std::cout << "  ISA/arch: " << isa_arch << "\n";
@@ -139,6 +144,26 @@ int HandleInspect(const std::vector<std::string> &args) {
     std::cout << "  Symbols: " << symbols << "\n";
     std::cout << "  PLT/GOT: " << plt_got << "\n";
     std::cout << "  Disassembler: " << (disassembler.empty() ? "missing" : disassembler) << "\n";
+    std::cout << "  QEMU selectors (supported): ";
+    for (size_t i = 0; i < supported_selectors.size(); ++i) {
+        if (i > 0) {
+            std::cout << ", ";
+        }
+        std::cout << supported_selectors[i];
+    }
+    std::cout << "\n";
+    std::cout << "  QEMU selector hints: ";
+    if (qemu_selector_hints.empty()) {
+        std::cout << "none";
+    } else {
+        for (size_t i = 0; i < qemu_selector_hints.size(); ++i) {
+            if (i > 0) {
+                std::cout << ", ";
+            }
+            std::cout << qemu_selector_hints[i];
+        }
+    }
+    std::cout << "\n";
     if (!notes.empty()) {
         std::cout << "  Notes:\n";
         for (const std::string &note : notes) {
@@ -159,6 +184,22 @@ int HandleInspect(const std::vector<std::string> &args) {
              << "  \"linkage\": \"" << JsonEscape(linkage) << "\",\n"
              << "  \"symbols\": \"" << JsonEscape(symbols) << "\",\n"
              << "  \"plt_got\": \"" << JsonEscape(plt_got) << "\",\n"
+             << "  \"qemu_supported_selectors\": [";
+        for (size_t i = 0; i < supported_selectors.size(); ++i) {
+            if (i > 0) {
+                json << ", ";
+            }
+            json << "\"" << JsonEscape(supported_selectors[i]) << "\"";
+        }
+        json << "],\n"
+             << "  \"qemu_selector_hints\": [";
+        for (size_t i = 0; i < qemu_selector_hints.size(); ++i) {
+            if (i > 0) {
+                json << ", ";
+            }
+            json << "\"" << JsonEscape(qemu_selector_hints[i]) << "\"";
+        }
+        json << "],\n"
              << "  \"disassembler\": \"" << JsonEscape(disassembler.empty() ? "missing" : disassembler)
              << "\",\n"
              << "  \"notes\": [";

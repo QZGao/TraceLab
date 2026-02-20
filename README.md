@@ -14,7 +14,7 @@ It has two main modes:
 - `tracelab doctor`: checks required and optional toolchain dependencies.
 - `tracelab run`: runs workloads in native or QEMU mode and emits structured JSON.
 - `tracelab report`: renders a human-readable summary from `result.json`.
-- `tracelab inspect`: basic ISA/ABI/linkage/symbol hints from binaries.
+- `tracelab inspect`: ISA/ABI/linkage/symbol hints plus QEMU architecture selector hints.
 
 ## Repository Layout
 
@@ -88,11 +88,19 @@ On Windows Visual Studio builds:
 ./build/tracelab inspect /path/to/binary
 ```
 
+`inspect` output includes:
+
+- supported QEMU selectors (`x86_64`, `aarch64`, `riscv64`)
+- selector hints derived from binary ISA metadata
+
 ### 5) QEMU mode
 
 ```bash
 ./build/tracelab run --qemu x86_64 --json out/qemu.json -- /bin/echo hello
 ```
+
+Supported selectors are `x86_64`, `aarch64`, and `riscv64`.
+Alias inputs such as `amd64` and `arm64` are normalized automatically.
 
 ## Testing
 
