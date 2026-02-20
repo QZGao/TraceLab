@@ -15,6 +15,7 @@ It has two main modes:
 - `tracelab run`: runs workloads in native or QEMU mode and emits structured JSON.
 - `tracelab report`: renders diagnosis, evidence, confidence, and limitations from `result.json`.
 - `tracelab inspect`: ISA/ABI/linkage/symbol hints plus QEMU architecture selector hints.
+- `tracelab compare`: compares native vs QEMU run artifacts (delta duration, throughput change, caveated counters).
 
 ## Repository Layout
 
@@ -102,6 +103,23 @@ On Windows Visual Studio builds:
 Supported selectors are `x86_64`, `aarch64`, and `riscv64`.
 Alias inputs such as `amd64` and `arm64` are normalized automatically.
 
+### 6) Compare native vs QEMU artifacts
+
+```bash
+./build/tracelab compare out/native.json out/qemu.json --json out/compare.json
+```
+
+For protocol-style comparisons (median over measured runs), pass multiple artifacts:
+
+```bash
+./build/tracelab compare \
+  --native out/native_run1.json --native out/native_run2.json --native out/native_run3.json \
+  --native out/native_run4.json --native out/native_run5.json \
+  --qemu out/qemu_run1.json --qemu out/qemu_run2.json --qemu out/qemu_run3.json \
+  --qemu out/qemu_run4.json --qemu out/qemu_run5.json \
+  --json out/compare.json
+```
+
 ## Testing
 
 Default tests:
@@ -158,4 +176,5 @@ python scripts/validate_schema.py \
 - `run` currently uses a replay strategy (`collection_strategy = main_run_plus_replay_collectors`) so collectors may run the workload more than once.
 - `strict` mode requires usable collectors; otherwise the command exits with error.
 - `run` includes a rule-based diagnosis with cited evidence metrics in output JSON.
+- `compare` treats wall-clock/throughput as primary metrics and tags QEMU perf counters as emulation-affected.
 - `inspect` relies on host tools (`readelf`, `objdump`/`llvm-objdump`) and degrades when unavailable.

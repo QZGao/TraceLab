@@ -242,24 +242,21 @@ int HandleRun(const std::vector<std::string> &args) {
             return 2;
         }
 
-        const auto normalized_arch = NormalizeQemuArchSelector(qemu_arch);
-        if (!normalized_arch.has_value()) {
-            std::cerr << "run: unsupported qemu architecture selector '" << qemu_arch << "'\n";
-            std::cerr << "run: supported selectors: "
-                      << JoinCommaSeparated(SupportedQemuArchSelectors()) << "\n";
-            std::cerr << "run: tip: use `tracelab inspect <binary>` to see qemu_selector_hints\n";
+        std::string wrap_error;
+        std::string normalized_arch;
+        if (!BuildQemuWrappedCommand(qemu_arch, workload_args, &exec_args, &normalized_arch,
+                                     &wrap_error)) {
+            if (StartsWith(wrap_error, "unsupported qemu architecture selector")) {
+                std::cerr << "run: " << wrap_error << "\n";
+                std::cerr << "run: tip: use `tracelab inspect <binary>` to see qemu_selector_hints\n";
+            } else {
+                std::cerr << "run: " << wrap_error << "\n";
+                std::cerr << "run: install qemu-user and ensure one of these is available: "
+                          << JoinCommaSeparated(SupportedQemuArchSelectors()) << "\n";
+            }
             return 2;
         }
-        qemu_arch = normalized_arch.value();
-
-        const std::string qemu_bin = "qemu-" + qemu_arch;
-        if (!CommandExists(qemu_bin)) {
-            std::cerr << "run: missing " << qemu_bin << " in PATH\n";
-            std::cerr << "run: install qemu-user and ensure one of these is available: "
-                      << JoinCommaSeparated(SupportedQemuArchSelectors()) << "\n";
-            return 2;
-        }
-        exec_args.insert(exec_args.begin(), qemu_bin);
+        qemu_arch = normalized_arch;
     }
 
     // In strict mode, fail early if required Linux collectors are unavailable.

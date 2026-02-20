@@ -24,4 +24,8 @@ int HandleReport(const std::vector<std::string> &args);
 // Reads binary metadata (ISA/ABI/linkage/symbol hints) using host tooling.
 int HandleInspect(const std::vector<std::string> &args);
 
+// Executes `tracelab compare`.
+// Compares native and QEMU run artifacts and reports delta/throughput changes.
+int HandleCompare(const std::vector<std::string> &args);
+
 } // namespace tracelab

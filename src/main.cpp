@@ -15,7 +15,9 @@ void PrintUsage() {
         << "  tracelab doctor [--json <path>]\n"
         << "  tracelab run [--native | --qemu <arch>] [--strict] [--json <path>] -- <command...>\n"
         << "  tracelab report <result.json>\n"
-        << "  tracelab inspect [--json <path>] <binary>\n";
+        << "  tracelab inspect [--json <path>] <binary>\n"
+        << "  tracelab compare [--native <result.json> ... --qemu <result.json> ...] "
+           "[--json <path>] [<native_result.json> <qemu_result.json>]\n";
 }
 
 } // namespace tracelab
@@ -50,6 +52,9 @@ int main(int argc, char **argv) {
     }
     if (subcommand == "inspect") {
         return HandleInspect(args);
+    }
+    if (subcommand == "compare") {
+        return HandleCompare(args);
     }
 
     std::cerr << "Unknown subcommand: " << subcommand << "\n";

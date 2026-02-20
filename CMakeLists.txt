@@ -24,6 +24,7 @@ add_executable(tracelab
     src/commands/run.cpp
     src/commands/report.cpp
     src/commands/inspect.cpp
+    src/commands/compare.cpp
 )
 
 target_include_directories(tracelab PRIVATE include)
@@ -103,6 +104,22 @@ if (BUILD_TESTING AND TRACELAB_BUILD_TESTS)
             NAME run_nonzero_smoke
             COMMAND ${Python3_EXECUTABLE}
                     ${CMAKE_SOURCE_DIR}/tests/unit/run_nonzero_smoke.py
+                    $<TARGET_FILE:tracelab>
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+
+        add_test(
+            NAME compare_smoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${CMAKE_SOURCE_DIR}/tests/unit/compare_smoke.py
+                    $<TARGET_FILE:tracelab>
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+
+        add_test(
+            NAME run_qemu_invalid_arch_smoke
+            COMMAND ${Python3_EXECUTABLE}
+                    ${CMAKE_SOURCE_DIR}/tests/unit/run_qemu_invalid_arch_smoke.py
                     $<TARGET_FILE:tracelab>
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         )

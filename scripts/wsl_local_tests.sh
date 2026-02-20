@@ -116,7 +116,12 @@ PY
 
 if command -v qemu-x86_64 >/dev/null 2>&1; then
   log "Running optional QEMU smoke"
-  "${TRACELAB_BIN}" run --qemu x86_64 --json "${OUT_DIR}/result_qemu_x86_64.json" -- /bin/echo hello-qemu
+  "${TRACELAB_BIN}" run --qemu x86_64 --json "${OUT_DIR}/result_qemu_x86_64.json" -- /bin/echo hello-wsl
+  log "Running optional native-vs-qemu comparison smoke"
+  "${TRACELAB_BIN}" compare \
+    "${OUT_DIR}/result_native.json" \
+    "${OUT_DIR}/result_qemu_x86_64.json" \
+    --json "${OUT_DIR}/compare_native_qemu.json"
   if [[ "${HAS_JSONSCHEMA}" -eq 1 ]]; then
     python3 scripts/validate_schema.py \
       --schema schema/result.schema.json \

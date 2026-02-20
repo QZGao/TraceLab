@@ -21,6 +21,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install jsonschema
 
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user
+
       - name: Configure
         run: >
           cmake -S . -B build
@@ -39,6 +44,11 @@ jobs:
           mkdir -p out
           ./build/tracelab run --native --json out/result.json -- /bin/echo hello
           ./build/tracelab report out/result.json
+
+      - name: QEMU smoke and compare
+        run: |
+          ./build/tracelab run --qemu x86_64 --json out/result_qemu_x86_64.json -- /bin/echo hello
+          ./build/tracelab compare out/result.json out/result_qemu_x86_64.json --json out/compare.json
 
       - name: Validate smoke JSON against schema
         run: >
