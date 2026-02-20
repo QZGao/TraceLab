@@ -67,6 +67,32 @@ jobs:
           ./build/tracelab run --native --json out/ci/mem_bw_native.json -- ./microbench/mem_bw 32 2
           ./build/tracelab run --native --json out/ci/syscall_rate_native.json -- ./microbench/syscall_rate 50000
 
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          payload = Path("out/ci/startup_io_payload.bin")
+          payload.write_bytes(os.urandom(48 * 1024 * 1024))
+          print(f"created startup payload: {payload} ({payload.stat().st_size} bytes)")
+          PY
+
+          if command -v sudo >/dev/null 2>&1; then
+            sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches" || true
+          fi
+
+          ./build/tracelab run \
+            --native \
+            --scenario-label startup_io \
+            --cache-state cold \
+            --json out/ci/startup_io_cold.json \
+            -- python3 -c "import hashlib, pathlib; data=pathlib.Path('out/ci/startup_io_payload.bin').read_bytes(); print('startup_io', len(data), hashlib.sha256(data).hexdigest()[:16])"
+
+          ./build/tracelab run \
+            --native \
+            --scenario-label startup_io \
+            --cache-state warm \
+            --json out/ci/startup_io_warm.json \
+            -- python3 -c "import hashlib, pathlib; data=pathlib.Path('out/ci/startup_io_payload.bin').read_bytes(); print('startup_io', len(data), hashlib.sha256(data).hexdigest()[:16])"
+
           ./build/tracelab run --native --json out/ci/warmup_native.json -- /bin/echo ci-warmup >/dev/null
           ./build/tracelab run --qemu "${QEMU_ARCH}" --json out/ci/warmup_qemu.json -- /bin/echo ci-warmup >/dev/null
 
@@ -98,12 +124,16 @@ jobs:
             --qemu-run out/ci/protocol_qemu_2.json \
             --qemu-run out/ci/protocol_qemu_3.json \
             --qemu-run out/ci/protocol_qemu_4.json \
-            --qemu-run out/ci/protocol_qemu_5.json
+            --qemu-run out/ci/protocol_qemu_5.json \
+            --cold-run out/ci/startup_io_cold.json \
+            --warm-run out/ci/startup_io_warm.json
 
       - name: Validate run JSON schema
         run: |
           python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/mem_bw_native.json
           python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/syscall_rate_native.json
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/startup_io_cold.json
+          python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/startup_io_warm.json
           python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/warmup_native.json
           python scripts/validate_schema.py --schema schema/result.schema.json --instance out/ci/warmup_qemu.json
           for i in $(seq 1 5); do

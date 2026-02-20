@@ -95,6 +95,16 @@ cmake --build build --config Debug
 ./build/tracelab compare out/result.json out/qemu.json --json out/compare.json
 ```
 
+For startup/I/O studies, label cache state explicitly:
+
+```bash
+# Cold-cache labeled run.
+./build/tracelab run --native --scenario-label startup_io --cache-state cold --json out/startup_cold.json -- <cmd>
+
+# Warm-cache labeled run (same command/input as cold run).
+./build/tracelab run --native --scenario-label startup_io --cache-state warm --json out/startup_warm.json -- <cmd>
+```
+
 On Windows Visual Studio builds:
 
 ```powershell

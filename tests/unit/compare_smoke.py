@@ -15,6 +15,10 @@ def write_run_result(path: str, mode: str, command: str, duration_sec: float, ar
         "command": command,
         "duration_sec": duration_sec,
         "exit_code": 0,
+        "run_metadata": {
+            "scenario_label": "synthetic_compare",
+            "cache_state": "unspecified",
+        },
         "diagnosis": {
             "label": "inconclusive",
             "confidence": "low",

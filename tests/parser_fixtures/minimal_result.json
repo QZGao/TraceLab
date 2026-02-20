@@ -6,6 +6,10 @@
   "command": "/bin/echo hello",
   "duration_sec": 0.001,
   "exit_code": 0,
+  "run_metadata": {
+    "scenario_label": "unspecified",
+    "cache_state": "unspecified"
+  },
   "diagnosis": {
     "label": "inconclusive",
     "confidence": "low",

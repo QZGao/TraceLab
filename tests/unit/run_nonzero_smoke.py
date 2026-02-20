@@ -44,6 +44,13 @@ def main() -> int:
         if data.get("exit_code") != 7:
             print("exit_code mismatch in result.json", file=sys.stderr)
             return 1
+        run_metadata = data.get("run_metadata", {})
+        if run_metadata.get("scenario_label") != "unspecified":
+            print("missing or invalid run_metadata.scenario_label", file=sys.stderr)
+            return 1
+        if run_metadata.get("cache_state") != "unspecified":
+            print("missing or invalid run_metadata.cache_state", file=sys.stderr)
+            return 1
         fallback = data.get("fallback", {})
         if fallback.get("exit_classification") not in ("exit_code", "signal", "unknown"):
             print("invalid fallback.exit_classification", file=sys.stderr)

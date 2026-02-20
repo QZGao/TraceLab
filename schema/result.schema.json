@@ -12,6 +12,7 @@
     "command",
     "duration_sec",
     "exit_code",
+    "run_metadata",
     "diagnosis",
     "host",
     "collectors"
@@ -52,6 +53,28 @@
     },
     "strict": {
       "type": "boolean"
+    },
+    "run_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_label",
+        "cache_state"
+      ],
+      "properties": {
+        "scenario_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cache_state": {
+          "type": "string",
+          "enum": [
+            "cold",
+            "warm",
+            "unspecified"
+          ]
+        }
+      }
     },
     "diagnosis": {
       "type": "object",

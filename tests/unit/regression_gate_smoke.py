@@ -14,6 +14,8 @@ def write_run(
         syscall_total_sec: float,
         perf_status: str = "ok",
         include_cache_counter: bool = True,
+        scenario_label: str = "synthetic",
+        cache_state: str = "unspecified",
 ) -> None:
     """Write a synthetic run_result JSON file with the given parameters."""
     perf_counters = {
@@ -34,6 +36,10 @@ def write_run(
         "command": "/bin/echo hello",
         "duration_sec": duration_sec,
         "exit_code": 0,
+        "run_metadata": {
+            "scenario_label": scenario_label,
+            "cache_state": cache_state,
+        },
         "diagnosis": {
             "label": "inconclusive",
             "confidence": "low",
@@ -98,18 +104,34 @@ def write_config(path: str) -> None:
         "duration": {"max_slowdown_factor_qemu_vs_native": 10.0},
         "cache_misses": {"max_ratio_qemu_vs_native": 40.0},
         "syscall_time": {"max_median_share_native": 0.8, "max_median_share_qemu": 0.95},
+        "cold_warm": {
+            "max_warm_to_cold_duration_ratio": 1.25,
+            "max_warm_minus_cold_syscall_share": 0.20,
+            "max_warm_to_cold_page_fault_ratio": 1.50,
+        },
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2)
 
 
-def run_gate(config: str, compare: str, native: list[str], qemu: list[str]) -> subprocess.CompletedProcess[str]:
+def run_gate(
+        config: str,
+        compare: str,
+        native: list[str],
+        qemu: list[str],
+        cold_run: Optional[str] = None,
+        warm_run: Optional[str] = None,
+) -> subprocess.CompletedProcess[str]:
     """Run the regression gate checker script with the given config, compare, and run_result files."""
     cmd = [sys.executable, "scripts/check_regression.py", "--config", config, "--compare", compare]
     for item in native:
         cmd += ["--native-run", item]
     for item in qemu:
         cmd += ["--qemu-run", item]
+    if cold_run is not None:
+        cmd += ["--cold-run", cold_run]
+    if warm_run is not None:
+        cmd += ["--warm-run", warm_run]
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
@@ -125,6 +147,9 @@ def main() -> int:
         qemu2 = os.path.join(tmp, "qemu2.json")
         native_no_perf = os.path.join(tmp, "native_no_perf.json")
         qemu_no_perf = os.path.join(tmp, "qemu_no_perf.json")
+        cold = os.path.join(tmp, "cold.json")
+        warm = os.path.join(tmp, "warm.json")
+        warm_bad_label = os.path.join(tmp, "warm_bad_label.json")
 
         write_config(config)
         write_compare(compare_ok, slowdown=3.0, cache_ratio=15.0)
@@ -150,15 +175,39 @@ def main() -> int:
             perf_status="error",
             include_cache_counter=False,
         )
+        write_run(
+            cold,
+            mode="native",
+            duration_sec=1.20,
+            syscall_total_sec=0.48,
+            scenario_label="startup_io",
+            cache_state="cold",
+        )
+        write_run(
+            warm,
+            mode="native",
+            duration_sec=1.00,
+            syscall_total_sec=0.25,
+            scenario_label="startup_io",
+            cache_state="warm",
+        )
+        write_run(
+            warm_bad_label,
+            mode="native",
+            duration_sec=1.00,
+            syscall_total_sec=0.25,
+            scenario_label="wrong_scenario",
+            cache_state="warm",
+        )
 
-        ok = run_gate(config, compare_ok, [native1, native2], [qemu1, qemu2])
+        ok = run_gate(config, compare_ok, [native1, native2], [qemu1, qemu2], cold_run=cold, warm_run=warm)
         if ok.returncode != 0:
             print("expected passing regression gate case", file=sys.stderr)
             print(ok.stdout, file=sys.stderr)
             print(ok.stderr, file=sys.stderr)
             return 1
 
-        bad = run_gate(config, compare_bad, [native1, native2], [qemu1, qemu2])
+        bad = run_gate(config, compare_bad, [native1, native2], [qemu1, qemu2], cold_run=cold, warm_run=warm)
         if bad.returncode == 0:
             print("expected failing regression gate case", file=sys.stderr)
             print(bad.stdout, file=sys.stderr)
@@ -170,6 +219,20 @@ def main() -> int:
             print("expected passing regression gate when cache-miss metric is unavailable", file=sys.stderr)
             print(no_cache.stdout, file=sys.stderr)
             print(no_cache.stderr, file=sys.stderr)
+            return 1
+
+        bad_label = run_gate(
+            config,
+            compare_ok,
+            [native1, native2],
+            [qemu1, qemu2],
+            cold_run=cold,
+            warm_run=warm_bad_label,
+        )
+        if bad_label.returncode == 0:
+            print("expected failing regression gate for mismatched cold/warm scenario labels", file=sys.stderr)
+            print(bad_label.stdout, file=sys.stderr)
+            print(bad_label.stderr, file=sys.stderr)
             return 1
 
     return 0

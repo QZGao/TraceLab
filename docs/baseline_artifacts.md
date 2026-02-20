@@ -9,6 +9,8 @@ For each baseline update, keep:
 - native measured run artifacts (`run_result`) for 5 measured runs
 - qemu measured run artifacts (`run_result`) for 5 measured runs
 - one compare artifact (`compare_result`)
+- one labeled cold-cache startup run (`run_metadata.cache_state = cold`)
+- one labeled warm-cache startup run (`run_metadata.cache_state = warm`)
 - rendered report text for at least one native and one qemu run
 - threshold config used (`config/regression_thresholds.json`)
 
@@ -24,6 +26,8 @@ baselines/
     ...
     qemu_run_5.json
     compare.json
+    startup_io_cold.json
+    startup_io_warm.json
     native_report.txt
     qemu_report.txt
     thresholds.json
@@ -35,8 +39,9 @@ baselines/
 2. Run one warm-up execution per mode and discard.
 3. Run 5 measured native executions and 5 measured qemu executions.
 4. Run `tracelab compare` across those measured artifacts.
-5. Run `scripts/check_regression.py` with the current threshold config.
-6. If the gate passes and results look reasonable, store the artifacts under a date-stamped baseline directory.
+5. Capture one paired startup/I/O scenario (`cold` then `warm`) with explicit run metadata labels.
+6. Run `scripts/check_regression.py` with the current threshold config.
+7. If the gate passes and results look reasonable, store the artifacts under a date-stamped baseline directory.
 
 ## How to update thresholds safely
 

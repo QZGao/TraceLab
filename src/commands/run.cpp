@@ -153,6 +153,8 @@ namespace tracelab {
         std::string mode = "native";
         std::string qemu_arch;
         std::string json_path;
+        std::string scenario_label;
+        std::string cache_state = "unspecified";
         bool strict = false;
         int collector_timeout_sec = 120;
 
@@ -163,6 +165,14 @@ namespace tracelab {
                 separator = i;
                 break;
             }
+        }
+
+        if (args.size() == 1 && args[0] == "--help") {
+            std::cout
+                    << "Usage: tracelab run [--native | --qemu <arch>] [--strict] [--json <path>] "
+                    "[--collector-timeout-sec <N>] [--scenario-label <name>] "
+                    "[--cache-state <cold|warm|unspecified>] -- <command...>\n";
+            return 0;
         }
 
         if (separator == args.size()) {
@@ -193,6 +203,26 @@ namespace tracelab {
                     return 2;
                 }
                 json_path = args[++i];
+            } else if (arg == "--scenario-label") {
+                if (i + 1 >= separator) {
+                    std::cerr << "run: --scenario-label expects a value\n";
+                    return 2;
+                }
+                scenario_label = Trim(args[++i]);
+                if (scenario_label.empty()) {
+                    std::cerr << "run: --scenario-label must not be empty\n";
+                    return 2;
+                }
+            } else if (arg == "--cache-state") {
+                if (i + 1 >= separator) {
+                    std::cerr << "run: --cache-state expects one of: cold, warm, unspecified\n";
+                    return 2;
+                }
+                cache_state = ToLower(Trim(args[++i]));
+                if (cache_state != "cold" && cache_state != "warm" && cache_state != "unspecified") {
+                    std::cerr << "run: --cache-state expects one of: cold, warm, unspecified\n";
+                    return 2;
+                }
             } else if (arg == "--strict") {
                 strict = true;
             } else if (arg == "--collector-timeout-sec") {
@@ -213,7 +243,8 @@ namespace tracelab {
             } else if (arg == "--help") {
                 std::cout
                         << "Usage: tracelab run [--native | --qemu <arch>] [--strict] [--json <path>] "
-                        "[--collector-timeout-sec <N>] -- <command...>\n";
+                        "[--collector-timeout-sec <N>] [--scenario-label <name>] "
+                        "[--cache-state <cold|warm|unspecified>] -- <command...>\n";
                 return 0;
             } else {
                 std::cerr << "run: unknown argument: " << arg << "\n";
@@ -297,6 +328,8 @@ namespace tracelab {
 
         const std::string user_command = JoinRaw(workload_args);
         const std::string exec_command = JoinQuoted(exec_args);
+        const std::string scenario_label_or_unspecified =
+                scenario_label.empty() ? std::string("unspecified") : scenario_label;
 
         std::ostringstream duration;
         duration << std::fixed << std::setprecision(6) << workload.wall_time_sec;
@@ -315,6 +348,10 @@ namespace tracelab {
                 << "  \"duration_sec\": " << duration.str() << ",\n"
                 << "  \"exit_code\": " << workload.exit_code << ",\n"
                 << "  \"strict\": " << JsonBool(strict) << ",\n"
+                << "  \"run_metadata\": {\n"
+                << "    \"scenario_label\": \"" << JsonEscape(scenario_label_or_unspecified) << "\",\n"
+                << "    \"cache_state\": \"" << JsonEscape(cache_state) << "\"\n"
+                << "  },\n"
                 << "  \"fallback\": {\n"
                 << "    \"wall_time_sec\": " << duration.str() << ",\n"
                 << "    \"exit_classification\": \"" << JsonEscape(workload.exit_classification) << "\",\n"
@@ -362,6 +399,8 @@ namespace tracelab {
 
         std::cout << "TraceLab Run\n";
         std::cout << "  Mode: " << mode << "\n";
+        std::cout << "  Scenario label: " << scenario_label_or_unspecified << "\n";
+        std::cout << "  Cache state: " << cache_state << "\n";
         std::cout << "  Command: " << user_command << "\n";
         std::cout << "  Duration: " << duration.str() << "s\n";
         std::cout << "  Exit code: " << workload.exit_code << " (" << workload.exit_classification << ")\n";

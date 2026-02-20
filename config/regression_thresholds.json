@@ -8,5 +8,10 @@
   "syscall_time": {
     "max_median_share_native": 0.80,
     "max_median_share_qemu": 0.95
+  },
+  "cold_warm": {
+    "max_warm_to_cold_duration_ratio": 1.50,
+    "max_warm_minus_cold_syscall_share": 0.20,
+    "max_warm_to_cold_page_fault_ratio": 2.00
   }
 }
