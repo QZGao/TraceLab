@@ -105,6 +105,12 @@ For startup/I/O studies, label cache state explicitly:
 ./build/tracelab run --native --scenario-label startup_io --cache-state warm --json out/startup_warm.json -- <cmd>
 ```
 
+Run metadata flags:
+
+- `--scenario-label <name>`: tags the run with a scenario identifier (default: `unspecified`).
+- `--cache-state <cold|warm|unspecified>`: records cache condition for the run (default: `unspecified`).
+- Cold/warm comparisons should use the same command and input, with only cache state changed.
+
 On Windows Visual Studio builds:
 
 ```powershell
@@ -145,6 +151,18 @@ bash scripts/demo_linux.sh
 
 Outputs are written to `out/demo/`.
 
+## Threshold Config
+
+`config/regression_thresholds.json` defines CI gate thresholds. It includes:
+
+- `duration.max_slowdown_factor_qemu_vs_native`
+- `cache_misses.max_ratio_qemu_vs_native`
+- `syscall_time.max_median_share_native`
+- `syscall_time.max_median_share_qemu`
+- `cold_warm.max_warm_to_cold_duration_ratio`
+- `cold_warm.max_warm_minus_cold_syscall_share`
+- `cold_warm.max_warm_to_cold_page_fault_ratio`
+
 ## Troubleshooting
 
 - `perf` unavailable: run `tracelab doctor`; on locked-down systems TraceLab still records fallback counters.
@@ -152,6 +170,7 @@ Outputs are written to `out/demo/`.
 - `qemu-<arch>` missing: install `qemu-user`; `tracelab inspect` can suggest selector hints.
 - WSL `perf` wrapper mismatch: ensure `perf --version` works in WSL before running strict comparisons.
 - Regression gate failures: inspect uploaded CI artifacts and compare against `docs/baseline_artifacts.md`.
+- Cold/warm page-fault checks may be skipped with a warning when `perf` counters are unavailable.
 
 ## Testing
 
